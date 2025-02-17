@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::collections::HashMap;
 
 // transaction engine runner`
@@ -22,18 +23,69 @@ pub enum RunnerError {
     InvalidRow(String),
 }
 
-pub struct Runner {
-    accounts: HashMap<ClientId, Account>,
+pub trait TransactionHandler {
+    fn handle(&mut self, transaction: Transaction) -> Result<(), RunnerError>;
+    // This method is required for downcasting in tests
+    fn as_any(&self) -> &dyn Any;
 }
 
-impl Runner {
+pub struct Runner<'a> {
+    accounts: HashMap<ClientId, Account>,
+    // The handler must live at least as long as Runner
+    handler: Box<dyn TransactionHandler + 'a>,
+}
+
+pub struct PrintHandler {}
+
+impl TransactionHandler for PrintHandler {
+    fn handle(&mut self, transaction: Transaction) -> Result<(), RunnerError> {
+        println!("{:?}", transaction);
+        Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+#[cfg(test)]
+struct CollectHandler {
+    pub transactions: Vec<Transaction>,
+}
+
+#[cfg(test)]
+impl TransactionHandler for CollectHandler {
+    fn handle(&mut self, transaction: Transaction) -> Result<(), RunnerError> {
+        self.transactions.push(transaction);
+        Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+impl<'a> Runner<'a> {
+    pub fn new(handler: Box<dyn TransactionHandler + 'a>) -> Self {
+        Runner {
+            handler: handler,
+            accounts: HashMap::new(),
+        }
+    }
+
+    /// Extract a reference to the underlying handler for inspection. Needed for test only
+    #[cfg(test)]
+    pub fn handler(&self) -> &dyn TransactionHandler {
+        &*self.handler
+    }
+
     /// Create a runner instance from a file path
-    pub async fn run_from_path(path: &str) -> Result<(), RunnerError> {
+    pub async fn run_from_path(&mut self, path: &str) -> Result<(), RunnerError> {
         let file = File::open(path)
             .await
             .map_err(|_| RunnerError::FileDoesNotExists(String::from(path)))?;
 
-        // need to convert from tokio async to csv async, sic
+        // need to convert from tokio async to csv async, sic. Maybe there's some better way?
         let buf_reader = BufReader::new(file).compat();
 
         // Build an asynchronous CSV deserializer
@@ -49,8 +101,37 @@ impl Runner {
                 print!("{:?}", err);
                 RunnerError::InvalidRow(String::from("TODO"))
             })?;
-            println!("{:?}", record);
+
+            self.handler.handle(record)?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    #[tokio::test]
+    async fn can_read_basic_example_file_test() {
+        let test_csv_path = "src/tests/base_transactions.csv";
+
+        let collect_handler = CollectHandler {
+            transactions: vec![],
+        };
+        let handler = Box::new(collect_handler);
+
+        let mut runner = Runner::new(handler);
+        let _result = runner.run_from_path(&test_csv_path).await;
+
+        let handler_ref = runner.handler();
+        // Downcast
+        let collect_handler = handler_ref
+            .as_any()
+            .downcast_ref::<CollectHandler>()
+            .expect("Handler is not a CollectHandler");
+
+        assert!(collect_handler.transactions.len() == 5);
     }
 }

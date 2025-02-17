@@ -1,5 +1,5 @@
 use clap::{arg, command};
-use tren::tren::engine::Runner;
+use tren::tren::engine::{PrintHandler, Runner};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,6 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or_else(|| anyhow::anyhow!("Missing file_path argument"))
         .unwrap();
 
-    let res = Runner::run_from_path(&filename).await?;
+    let handler = PrintHandler {};
+    let mut runner = Runner::new(Box::new(handler));
+    let res = runner.run_from_path(&filename).await?;
     Ok(res)
 }
