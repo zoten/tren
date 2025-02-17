@@ -1,14 +1,15 @@
+// This is the "real" default executor for production environment
 use crate::tren::{
     engine::runner::{RunnerError, TransactionHandler},
     transactions::Transaction,
 };
+
 use std::any::Any;
 
-pub struct PrintHandler {}
+pub struct ExecuteHandler {}
 
-impl TransactionHandler for PrintHandler {
+impl TransactionHandler for ExecuteHandler {
     fn handle(&mut self, transaction: Transaction) -> Result<(), RunnerError> {
-        println!("{:?}", transaction);
         Ok(())
     }
 

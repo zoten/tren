@@ -1,8 +1,6 @@
 use std::any::Any;
-use std::collections::HashMap;
 
 // transaction engine runner`
-use crate::tren::account::Account;
 use crate::tren::transactions::Transaction;
 use csv_async::AsyncReaderBuilder;
 use csv_async::Trim;
@@ -11,8 +9,6 @@ use thiserror::Error;
 use tokio::fs::File;
 use tokio::io::BufReader;
 use tokio_util::compat::TokioAsyncReadCompatExt;
-
-use super::client::ClientId;
 
 #[derive(Error, Debug)]
 pub enum RunnerError {
@@ -30,17 +26,13 @@ pub trait TransactionHandler {
 }
 
 pub struct Runner<'a> {
-    accounts: HashMap<ClientId, Account>,
     // The handler must live at least as long as Runner
     handler: Box<dyn TransactionHandler + 'a>,
 }
 
 impl<'a> Runner<'a> {
     pub fn new(handler: Box<dyn TransactionHandler + 'a>) -> Self {
-        Runner {
-            handler: handler,
-            accounts: HashMap::new(),
-        }
+        Runner { handler: handler }
     }
 
     /// Extract a reference to the underlying handler for inspection. Needed for test only
