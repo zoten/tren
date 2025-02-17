@@ -1,5 +1,5 @@
-use std::any::Any;
-
+use crate::tren::handlers::transaction_handler::TransactionHandler;
+use crate::tren::storage::store::AccountsStorage;
 // transaction engine runner`
 use crate::tren::transactions::Transaction;
 use csv_async::AsyncReaderBuilder;
@@ -10,6 +10,8 @@ use tokio::fs::File;
 use tokio::io::BufReader;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
+use super::context::RunnerContext;
+
 #[derive(Error, Debug)]
 pub enum RunnerError {
     /// a given path is not a file
@@ -19,20 +21,21 @@ pub enum RunnerError {
     InvalidRow(String),
 }
 
-pub trait TransactionHandler {
-    fn handle(&mut self, transaction: Transaction) -> Result<(), RunnerError>;
-    // This method is required for downcasting in tests
-    fn as_any(&self) -> &dyn Any;
-}
-
 pub struct Runner<'a> {
-    // The handler must live at least as long as Runner
+    // handler must live at least as long as Runner
     handler: Box<dyn TransactionHandler + 'a>,
+    accounts_store: Box<dyn AccountsStorage>,
 }
 
 impl<'a> Runner<'a> {
-    pub fn new(handler: Box<dyn TransactionHandler + 'a>) -> Self {
-        Runner { handler: handler }
+    pub fn new(
+        handler: Box<dyn TransactionHandler + 'a>,
+        accounts_storage: Box<dyn AccountsStorage>,
+    ) -> Self {
+        Runner {
+            handler: handler,
+            accounts_store: accounts_storage,
+        }
     }
 
     /// Extract a reference to the underlying handler for inspection. Needed for test only
@@ -57,6 +60,8 @@ impl<'a> Runner<'a> {
             .create_deserializer(buf_reader)
             .into_deserialize::<Transaction>();
 
+        let mut context = RunnerContext::new(&self.accounts_store);
+
         // Stream through each record
         while let Some(result) = csv_reader.next().await {
             let record = result.map_err(|err| {
@@ -65,7 +70,7 @@ impl<'a> Runner<'a> {
             })?;
             print!("{:?}", record);
 
-            self.handler.handle(record)?;
+            self.handler.handle(record, &mut context)?;
         }
         Ok(())
     }
@@ -75,6 +80,7 @@ impl<'a> Runner<'a> {
 mod test {
     use super::*;
     use crate::tren::handlers::collect_handler::CollectHandler;
+    use crate::tren::storage::in_memory_accounts_storage::InMemoryAccountsStorage;
     use crate::tren::transactions::{Transaction, TransactionType};
     use rust_decimal_macros::dec;
 
@@ -84,12 +90,7 @@ mod test {
     async fn can_read_all_known_transactions_test() {
         let test_csv_path = "src/tests/one_transaction_per_type.csv";
 
-        let collect_handler = CollectHandler {
-            transactions: vec![],
-        };
-        let handler = Box::new(collect_handler);
-
-        let mut runner = Runner::new(handler);
+        let mut runner = get_runner();
         let _result = runner.run_from_path(&test_csv_path).await;
 
         let handler_ref = runner.handler();
@@ -119,12 +120,7 @@ mod test {
     async fn can_read_basic_example_file_test() {
         let test_csv_path = "src/tests/base_transactions.csv";
 
-        let collect_handler = CollectHandler {
-            transactions: vec![],
-        };
-        let handler = Box::new(collect_handler);
-
-        let mut runner = Runner::new(handler);
+        let mut runner = get_runner();
         let _result = runner.run_from_path(&test_csv_path).await;
 
         let handler_ref = runner.handler();
@@ -135,5 +131,17 @@ mod test {
             .expect("Handler is not a CollectHandler");
 
         assert!(collect_handler.transactions.len() == 5);
+    }
+
+    fn get_runner<'a>() -> Runner<'a> {
+        let collect_handler = CollectHandler {
+            transactions: vec![],
+        };
+        let handler = Box::new(collect_handler);
+
+        let in_memory_accounts_storage = InMemoryAccountsStorage::default();
+        let accounts_storage = Box::new(in_memory_accounts_storage);
+
+        Runner::new(handler, accounts_storage)
     }
 }

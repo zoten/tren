@@ -14,12 +14,22 @@ pub enum TransactionError {
     InsufficientBalance,
 }
 
+#[derive(Clone)]
+pub enum AccountStatus {
+    /// the account is operational
+    Operational,
+    /// the account has been frozen and no operation shall be performed on it
+    Frozen,
+}
+
+#[derive(Clone)]
 pub struct Account {
-    client_id: ClientId,
+    pub client_id: ClientId,
     /// amount that the account has on hold until a dispute is resolved
-    held_amount: Decimal,
+    pub held_amount: Decimal,
     /// total amount available for the account to use
-    amount: Decimal,
+    pub amount: Decimal,
+    pub status: AccountStatus,
 }
 
 impl Account {
@@ -28,6 +38,7 @@ impl Account {
             client_id: client_id,
             held_amount: dec!(0),
             amount: dec!(0),
+            status: AccountStatus::Operational,
         }
     }
 
@@ -65,6 +76,7 @@ mod test {
             client_id: 12,
             held_amount: dec!(0),
             amount: total,
+            status: AccountStatus::Operational,
         };
 
         assert_eq!(account.total(), total);
@@ -87,6 +99,7 @@ mod test {
             client_id: 12,
             held_amount: dec!(0),
             amount: dec!(100),
+            status: AccountStatus::Operational,
         };
 
         // when

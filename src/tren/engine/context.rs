@@ -1,15 +1,17 @@
-use std::collections::HashMap;
+// context meant to be passed through transactions
+// in case of multithreaded systems here's where locks may be held
 
-use crate::tren::{account::Account, client::ClientId};
+use crate::tren::storage::store::AccountsStorage;
 
-pub struct RunnerContext {
-    accounts: HashMap<ClientId, Account>,
+// in terms of reuse this could also become a trait
+pub struct RunnerContext<'a> {
+    accounts_store: &'a Box<dyn AccountsStorage>,
 }
 
-impl RunnerContext {
-    pub fn new() -> Self {
+impl<'a> RunnerContext<'a> {
+    pub fn new(accounts_store: &'a Box<dyn AccountsStorage>) -> Self {
         RunnerContext {
-            accounts: HashMap::new(),
+            accounts_store: accounts_store,
         }
     }
 }

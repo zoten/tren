@@ -1,8 +1,10 @@
+use crate::tren::engine::context::RunnerContext;
 #[cfg(test)]
-use crate::tren::{
-    engine::runner::{RunnerError, TransactionHandler},
-    transactions::Transaction,
-};
+use crate::tren::engine::runner::RunnerError;
+#[cfg(test)]
+use crate::tren::handlers::transaction_handler::TransactionHandler;
+#[cfg(test)]
+use crate::tren::transactions::Transaction;
 #[cfg(test)]
 use std::any::Any;
 
@@ -13,7 +15,11 @@ pub struct CollectHandler {
 
 #[cfg(test)]
 impl TransactionHandler for CollectHandler {
-    fn handle(&mut self, transaction: Transaction) -> Result<(), RunnerError> {
+    fn handle(
+        &mut self,
+        transaction: Transaction,
+        context: &mut RunnerContext,
+    ) -> Result<(), RunnerError> {
         self.transactions.push(transaction);
         Ok(())
     }
