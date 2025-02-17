@@ -10,7 +10,7 @@ pub type Amount = Decimal;
 pub type TransactionId = u32;
 
 // I know I could probably rename_all but I prefer to be explicit to avoid renaming/adding confusion
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub enum TransactionType {
     /// an amount is being added to the funds
     #[serde(rename = "deposit")]
@@ -27,7 +27,7 @@ pub enum TransactionType {
     Chargeback,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct Transaction {
     #[serde(rename = "type")]
     transaction_type: TransactionType,

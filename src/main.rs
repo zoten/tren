@@ -1,5 +1,6 @@
 use clap::{arg, command};
-use tren::tren::engine::{PrintHandler, Runner};
+use tren::tren::engine::Runner;
+use tren::tren::handlers::print_handler::PrintHandler;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

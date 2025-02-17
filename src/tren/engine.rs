@@ -35,36 +35,6 @@ pub struct Runner<'a> {
     handler: Box<dyn TransactionHandler + 'a>,
 }
 
-pub struct PrintHandler {}
-
-impl TransactionHandler for PrintHandler {
-    fn handle(&mut self, transaction: Transaction) -> Result<(), RunnerError> {
-        println!("{:?}", transaction);
-        Ok(())
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-#[cfg(test)]
-struct CollectHandler {
-    pub transactions: Vec<Transaction>,
-}
-
-#[cfg(test)]
-impl TransactionHandler for CollectHandler {
-    fn handle(&mut self, transaction: Transaction) -> Result<(), RunnerError> {
-        self.transactions.push(transaction);
-        Ok(())
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
 impl<'a> Runner<'a> {
     pub fn new(handler: Box<dyn TransactionHandler + 'a>) -> Self {
         Runner {
@@ -101,6 +71,7 @@ impl<'a> Runner<'a> {
                 print!("{:?}", err);
                 RunnerError::InvalidRow(String::from("TODO"))
             })?;
+            print!("{:?}", record);
 
             self.handler.handle(record)?;
         }
@@ -110,8 +81,47 @@ impl<'a> Runner<'a> {
 
 #[cfg(test)]
 mod test {
-
     use super::*;
+    use crate::tren::handlers::collect_handler::CollectHandler;
+    use crate::tren::transactions::{Transaction, TransactionType};
+    use rust_decimal_macros::dec;
+
+    // TODO: this should be separate tests with decent separation, but at this
+    // moment I just wanna be sure I'm not breaking stuff
+    #[tokio::test]
+    async fn can_read_all_known_transactions_test() {
+        let test_csv_path = "src/tests/one_transaction_per_type.csv";
+
+        let collect_handler = CollectHandler {
+            transactions: vec![],
+        };
+        let handler = Box::new(collect_handler);
+
+        let mut runner = Runner::new(handler);
+        let _result = runner.run_from_path(&test_csv_path).await;
+
+        let handler_ref = runner.handler();
+        // Downcast
+        let collect_handler = handler_ref
+            .as_any()
+            .downcast_ref::<CollectHandler>()
+            .expect("Handler is not a CollectHandler");
+
+        assert!(collect_handler.transactions.len() == 8);
+        assert_eq!(
+            collect_handler.transactions,
+            vec![
+                Transaction::new(TransactionType::Deposit, 1, 1, Some(dec!(100))),
+                Transaction::new(TransactionType::Withdrawal, 1, 2, Some(dec!(1.5))),
+                Transaction::new(TransactionType::Dispute, 1, 2, None),
+                Transaction::new(TransactionType::Resolve, 1, 2, None),
+                Transaction::new(TransactionType::Deposit, 1, 5, Some(dec!(100))),
+                Transaction::new(TransactionType::Withdrawal, 1, 6, Some(dec!(10.5))),
+                Transaction::new(TransactionType::Dispute, 1, 5, None),
+                Transaction::new(TransactionType::Chargeback, 1, 5, None),
+            ]
+        )
+    }
 
     #[tokio::test]
     async fn can_read_basic_example_file_test() {
