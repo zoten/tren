@@ -23,11 +23,11 @@ impl<'a> CsvPrinter {
 
     fn account_csv(&self, account: &Account) -> String {
         format!(
-            "{client_id}, {available}, {held}, {total}, {locked}",
+            "{client_id}, {available:.4}, {held:.4}, {total:.4}, {locked}",
             client_id = account.client_id.to_string(),
-            available = account.amount.to_string(),
-            held = account.held_amount.to_string(),
-            total = account.total().to_string(),
+            available = account.amount.round_dp(4),
+            held = account.held_amount.round_dp(4),
+            total = account.total().round_dp(4),
             locked = account.frozen().to_string()
         )
     }

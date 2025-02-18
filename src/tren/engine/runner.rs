@@ -74,9 +74,11 @@ impl<'a> Runner<'a> {
         // Stream through each record
         while let Some(result) = csv_reader.next().await {
             let record = result
-                .map_err(|_err| RunnerError::InvalidRow(String::from("TODO")))?
+                .map_err(|err| {
+                    RunnerError::InvalidRow(format!("Row could not be deserialized [{:?}]", err))
+                })?
                 .validate()
-                .map_err(|_err| RunnerError::InvalidRow(String::from("TODO2")))?;
+                .map_err(|err| RunnerError::InvalidRow(format!("Invalid row [{:?}]", err)))?;
             //print!("{:?}", record);
 
             self.handler.handle(record, &mut context)?;
