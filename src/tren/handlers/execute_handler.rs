@@ -105,7 +105,7 @@ impl ExecuteHandler {
             }
         } else {
             // the transaction does not exist. This seems an error on the source. Skipping
-            return Ok(RunnerOutcome::Skipped);
+            Ok(RunnerOutcome::Skipped)
         }
     }
 }

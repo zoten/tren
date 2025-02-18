@@ -18,6 +18,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let storage = Box::new(InMemoryAccountsStorage::default());
 
     let mut runner = Runner::new(handler, storage);
-    let res = runner.run_from_path(&filename).await?;
+    let res = runner.run_from_path(filename).await?;
     Ok(res)
 }

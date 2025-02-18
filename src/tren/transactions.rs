@@ -3,11 +3,18 @@
 
 use rust_decimal::Decimal;
 use serde::Deserialize;
+use thiserror::Error;
 
 use crate::tren::client::ClientId;
 
 pub type Amount = Decimal;
 pub type TransactionId = u32;
+
+#[derive(Error, Debug)]
+pub enum TransactionError {
+    #[error("Invalid transaction [{0}]")]
+    InvalidTransaction(String),
+}
 
 // I know I could probably rename_all but I prefer to be explicit to avoid renaming/adding confusion
 #[derive(Deserialize, Debug, PartialEq, Clone)]
@@ -55,7 +62,7 @@ impl Transaction {
         }
     }
 
-    pub fn validate(self) -> Result<Self, ()> {
+    pub fn validate(self) -> Result<Self, TransactionError> {
         match self.transaction_type {
             TransactionType::Deposit => self.amount.is_some(),
             TransactionType::Withdrawal => self.amount.is_some(),
@@ -63,7 +70,8 @@ impl Transaction {
             TransactionType::Dispute => self.amount.is_none(),
             TransactionType::Resolve => self.amount.is_none(),
         }
-        .then(|| self)
-        .ok_or(())
+        .then_some(self)
+        .ok_or(
+            TransactionError::InvalidTransaction(String::from("Amount is not correct for this transaction (only Deposit and Withrawal can have amounts)")))
     }
 }

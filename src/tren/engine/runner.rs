@@ -42,7 +42,7 @@ impl<'a> Runner<'a> {
         accounts_storage: Box<dyn AccountsStorage>,
     ) -> Self {
         Runner {
-            handler: handler,
+            handler,
             accounts_store: accounts_storage,
         }
     }

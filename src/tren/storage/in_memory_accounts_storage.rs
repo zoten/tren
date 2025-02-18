@@ -48,7 +48,7 @@ impl AccountsStorage for InMemoryAccountsStorage {
     fn push_transaction(&mut self, client_id: ClientId, transaction: Transaction) {
         self.accounts_transactions
             .entry(client_id)
-            .or_insert_with(|| vec![])
+            .or_insert_with(Vec::new)
             .push(transaction);
     }
 
