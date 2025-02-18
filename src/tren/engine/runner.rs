@@ -85,6 +85,9 @@ impl<'a> Runner<'a> {
     }
 }
 
+// I'm using a concrete e2e-like test here just not to use too much time in playing
+// with lifetimes and exotic types by splitting the stream producer and the handle loop in
+// run_from_path
 #[cfg(test)]
 mod test {
     use super::*;

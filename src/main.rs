@@ -1,6 +1,7 @@
 use clap::{arg, command};
 use tren::tren::engine::runner::Runner;
 use tren::tren::handlers::execute_handler::ExecuteHandler;
+use tren::tren::output::csv_printer::CsvPrinter;
 use tren::tren::storage::in_memory_accounts_storage::InMemoryAccountsStorage;
 
 #[tokio::main]
@@ -18,6 +19,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let storage = Box::new(InMemoryAccountsStorage::default());
 
     let mut runner = Runner::new(handler, storage);
-    runner.run_from_path(filename).await?;
+    let result = runner.run_from_path(filename).await?;
+
+    CsvPrinter::default().print(result.accounts_store.all_accounts_iter());
+
     Ok(())
 }
