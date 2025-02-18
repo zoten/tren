@@ -52,11 +52,22 @@ impl Account {
     }
 
     /// Hold some funds. This means the available amount will be reduced by held amount
-    /// Note that funds could become negative this way, since we could be disputing a transaction
+    /// Note that funds could become negative this way, since we could be e.g. disputing a transaction
     /// happened before withrawn events
     pub fn hold(&mut self, amount_to_hold: Amount) {
         self.amount -= amount_to_hold;
         self.held_amount += amount_to_hold;
+    }
+
+    /// Release some held funds. This means the available amount will be augmented by held amount
+    pub fn release(&mut self, amount_to_release: Amount) {
+        self.amount += amount_to_release;
+        self.held_amount -= amount_to_release;
+    }
+
+    /// Forget some held funds. This means the total available amount will decrease
+    pub fn chargeback(&mut self, amount_to_chargeback: Amount) {
+        self.held_amount -= amount_to_chargeback;
     }
 
     /// set the status of an account to `Frozen`

@@ -14,7 +14,6 @@ pub struct InMemoryAccountsStorage {
     accounts_transactions: HashMap<ClientId, Vec<Transaction>>,
 }
 
-
 impl AccountsStorage for InMemoryAccountsStorage {
     fn get_or_create(&mut self, client_id: ClientId) -> Result<&mut Account, StoreError> {
         let account = self
@@ -56,7 +55,7 @@ impl AccountsStorage for InMemoryAccountsStorage {
 
 #[cfg(test)]
 mod tests {
-    use crate::tren::{account::AccountStatus, client};
+    use crate::tren::account::AccountStatus;
 
     use super::*;
 
