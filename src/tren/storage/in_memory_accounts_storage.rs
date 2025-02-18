@@ -15,6 +15,10 @@ pub struct InMemoryAccountsStorage {
 }
 
 impl AccountsStorage for InMemoryAccountsStorage {
+    fn all_accounts_iter(&self) -> Box<dyn Iterator<Item = &Account> + '_> {
+        Box::new(self.accounts.values())
+    }
+
     fn get_or_create(&mut self, client_id: ClientId) -> Result<&mut Account, StoreError> {
         let account = self
             .accounts

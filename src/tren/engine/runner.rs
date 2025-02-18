@@ -54,7 +54,7 @@ impl<'a> Runner<'a> {
     }
 
     /// Create a runner instance from a file path
-    pub async fn run_from_path(&mut self, path: &str) -> Result<(), RunnerError> {
+    pub async fn run_from_path(&mut self, path: &str) -> Result<RunnerContext, RunnerError> {
         let file = File::open(path)
             .await
             .map_err(|_| RunnerError::FileDoesNotExists(String::from(path)))?;
@@ -81,14 +81,16 @@ impl<'a> Runner<'a> {
 
             self.handler.handle(record, &mut context)?;
         }
-        Ok(())
+        Ok(context)
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::tren::account::Account;
     use crate::tren::handlers::collect_handler::CollectHandler;
+    use crate::tren::handlers::execute_handler::ExecuteHandler;
     use crate::tren::storage::in_memory_accounts_storage::InMemoryAccountsStorage;
     use crate::tren::transactions::{Transaction, TransactionType};
     use rust_decimal_macros::dec;
@@ -142,11 +144,48 @@ mod test {
         assert!(collect_handler.transactions.len() == 5);
     }
 
+    #[tokio::test]
+    async fn one_client_basic_lifecycle_test() {
+        let test_csv_path = "src/tests/one_client_basic_lifecycle.csv";
+
+        let mut runner = get_executor_runner();
+        let result = runner
+            .run_from_path(&test_csv_path)
+            .await
+            .expect("Expected an Ok value");
+
+        assert!(
+            result
+                .accounts_store
+                .all_accounts_iter()
+                .collect::<Vec<&Account>>()
+                .len()
+                == 1
+        );
+
+        let account = result
+            .accounts_store
+            .get(1)
+            .expect("Get should work")
+            .expect("Account should exist");
+        assert_eq!(account.total(), dec!(101));
+    }
+
     fn get_runner<'a>() -> Runner<'a> {
         let collect_handler = CollectHandler {
             transactions: vec![],
         };
         let handler = Box::new(collect_handler);
+
+        let in_memory_accounts_storage = InMemoryAccountsStorage::default();
+        let accounts_storage = Box::new(in_memory_accounts_storage);
+
+        Runner::new(handler, accounts_storage)
+    }
+
+    fn get_executor_runner<'a>() -> Runner<'a> {
+        let execute_handler = ExecuteHandler {};
+        let handler = Box::new(execute_handler);
 
         let in_memory_accounts_storage = InMemoryAccountsStorage::default();
         let accounts_storage = Box::new(in_memory_accounts_storage);
