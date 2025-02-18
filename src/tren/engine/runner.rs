@@ -90,6 +90,7 @@ impl<'a> Runner<'a> {
 // I'm using a concrete e2e-like test here just not to use too much time in playing
 // with lifetimes and exotic types by splitting the stream producer and the handle loop in
 // run_from_path
+// however, should the csv come from other sources (TCP/gRPC streams etc) this division should be implemented
 #[cfg(test)]
 mod test {
     use super::*;
@@ -174,6 +175,67 @@ mod test {
             .expect("Get should work")
             .expect("Account should exist");
         assert_eq!(account.total(), dec!(101));
+    }
+
+    #[tokio::test]
+    async fn simple_disputed_resolve_test() {
+        let test_csv_path = "src/tests/simple_disputed_resolve.csv";
+
+        let mut runner = get_executor_runner();
+        let result = runner
+            .run_from_path(&test_csv_path)
+            .await
+            .expect("Expected an Ok value");
+
+        let account = result
+            .accounts_store
+            .get(1)
+            .expect("Get should work")
+            .expect("Account 1 should exist");
+
+        // 1 + 2 - 1.5 (disputed) + 2 + (resolved)
+        assert_eq!(account.total(), dec!(3.5));
+    }
+
+    #[tokio::test]
+    async fn simple_disputed_chargeback_test() {
+        let test_csv_path = "src/tests/simple_disputed_chargeback.csv";
+
+        let mut runner = get_executor_runner();
+        let result = runner
+            .run_from_path(&test_csv_path)
+            .await
+            .expect("Expected an Ok value");
+
+        let account = result
+            .accounts_store
+            .get(1)
+            .expect("Get should work")
+            .expect("Account 1 should exist");
+
+        // 1 + 2 - 1.5 (disputed) + 2 + (chargeback) + frozen (ignore subsequent transactions)
+        assert!(account.frozen());
+        assert_eq!(account.total(), dec!(2));
+    }
+
+    #[tokio::test]
+    async fn refer_inexistent_tx_test() {
+        let test_csv_path = "src/tests/refer_inexistent_tx.csv";
+
+        let mut runner = get_executor_runner();
+        let result = runner
+            .run_from_path(&test_csv_path)
+            .await
+            .expect("Expected an Ok value");
+
+        let account = result
+            .accounts_store
+            .get(1)
+            .expect("Get should work")
+            .expect("Account 1 should exist");
+
+        // 1 + 2 - 1.5 + (dispute a non existent tx) + 2 + (resolve a non disputed tx) + (chargeback a non disputed tx)
+        assert_eq!(account.total(), dec!(3.5));
     }
 
     fn get_runner<'a>() -> Runner<'a> {

@@ -34,6 +34,17 @@ pub enum TransactionType {
     Chargeback,
 }
 
+#[derive(Deserialize, PartialEq, Clone, Debug)]
+pub enum TransactionStatus {
+    Valid,
+    Disputed,
+    ChargedBack,
+}
+
+fn default_status() -> TransactionStatus {
+    TransactionStatus::Valid
+}
+
 #[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Transaction {
     #[serde(rename = "type")]
@@ -44,6 +55,8 @@ pub struct Transaction {
     pub transaction_id: TransactionId,
     #[serde(rename = "amount")]
     pub amount: Option<Amount>,
+    #[serde(default = "default_status")]
+    pub status: TransactionStatus,
 }
 
 impl Transaction {
@@ -59,6 +72,7 @@ impl Transaction {
             client_id,
             transaction_id,
             amount,
+            status: TransactionStatus::Valid,
         }
     }
 
@@ -73,5 +87,17 @@ impl Transaction {
         .then_some(self)
         .ok_or(
             TransactionError::InvalidTransaction(String::from("Amount is not correct for this transaction (only Deposit and Withrawal can have amounts)")))
+    }
+
+    pub fn dispute(&mut self) {
+        self.status = TransactionStatus::Disputed;
+    }
+
+    pub fn resolve(&mut self) {
+        self.status = TransactionStatus::Valid;
+    }
+
+    pub fn chargeback(&mut self) {
+        self.status = TransactionStatus::ChargedBack;
     }
 }

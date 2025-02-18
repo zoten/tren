@@ -35,6 +35,7 @@ pub trait AccountsStorage {
     // Accounts transactions
     fn push_transaction(&mut self, client_id: ClientId, transaction: Transaction);
     fn get_transactions(&self, client_id: ClientId) -> Option<&Vec<Transaction>>;
+    fn get_transactions_mut(&mut self, client_id: ClientId) -> Option<&mut Vec<Transaction>>;
 
     // required for downcasting in tests
     fn as_any(&self) -> &dyn Any;

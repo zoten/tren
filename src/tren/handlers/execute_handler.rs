@@ -3,7 +3,7 @@ use crate::tren::engine::context::RunnerContext;
 // This is the "real" default executor for production environment
 use crate::tren::engine::runner::{RunnerError, RunnerOutcome};
 use crate::tren::handlers::transaction_handler::TransactionHandler;
-use crate::tren::transactions::{Transaction, TransactionType};
+use crate::tren::transactions::{Transaction, TransactionStatus, TransactionType};
 
 use std::any::Any;
 
@@ -20,6 +20,9 @@ impl TransactionHandler for ExecuteHandler {
             .get_or_create(transaction.client_id)
             .map_err(|_| RunnerError::StorageError)?
             .clone();
+
+        println!("------");
+        println!("{:?}", account);
 
         // if the account is locked, let's ignore the operation
         if account.frozen() {
@@ -42,12 +45,13 @@ impl TransactionHandler for ExecuteHandler {
                 context
                     .accounts_store
                     .push_transaction(account.client_id, transaction);
-
+                println!("{:?}", account);
                 // Update Account in storage
                 context
                     .accounts_store
                     .put(account)
                     .map_err(|_| RunnerError::StorageError)?;
+
                 Ok(res)
             }
 
@@ -88,19 +92,19 @@ impl ExecuteHandler {
         &mut self,
         account: &mut Account,
         transaction: &Transaction,
-        context: &RunnerContext,
+        context: &mut RunnerContext,
     ) -> Result<RunnerOutcome, RunnerError> {
         // Get the transaction
         let transactions = match context
             .accounts_store
-            .get_transactions(transaction.client_id)
+            .get_transactions_mut(transaction.client_id)
         {
             None => return Ok(RunnerOutcome::Skipped),
             Some(transactions) => transactions,
         };
 
         if let Some(original_transaction) = transactions
-            .iter()
+            .iter_mut()
             .find(|t| t.transaction_id == transaction.transaction_id)
         {
             match original_transaction {
@@ -114,6 +118,7 @@ impl ExecuteHandler {
                 } => {
                     // transaction has already been validated at this point, so unwrap is ugly but safe
                     account.hold(original_transaction.amount.expect("This Dispute->Deposit/Withdrawal transaction should have an amount and should have been already validated"));
+                    original_transaction.dispute();
                     Ok(RunnerOutcome::Success)
                 }
                 _ => {
@@ -151,10 +156,12 @@ impl ExecuteHandler {
             match original_transaction {
                 Transaction {
                     transaction_type: TransactionType::Deposit,
+                    status: TransactionStatus::Disputed,
                     ..
                 }
                 | Transaction {
                     transaction_type: TransactionType::Withdrawal,
+                    status: TransactionStatus::Disputed,
                     ..
                 } => {
                     // transaction has already been validated at this point, so unwrap is ugly but safe
@@ -162,6 +169,7 @@ impl ExecuteHandler {
                     Ok(RunnerOutcome::Success)
                 }
                 _ => {
+                    // the original transaction is not disputed: skip
                     // the original transaction is not a money movement: what to do?
                     // skipping for now
                     Ok(RunnerOutcome::Skipped)
@@ -197,10 +205,12 @@ impl ExecuteHandler {
             match original_transaction {
                 Transaction {
                     transaction_type: TransactionType::Deposit,
+                    status: TransactionStatus::Disputed,
                     ..
                 }
                 | Transaction {
                     transaction_type: TransactionType::Withdrawal,
+                    status: TransactionStatus::Disputed,
                     ..
                 } => {
                     // transaction has already been validated at this point, so unwrap is ugly but safe
@@ -209,6 +219,7 @@ impl ExecuteHandler {
                     Ok(RunnerOutcome::Success)
                 }
                 _ => {
+                    // the original transaction is not disputed: skip
                     // the original transaction is not a money movement: what to do?
                     // skipping for now
                     Ok(RunnerOutcome::Skipped)

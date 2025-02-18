@@ -52,6 +52,10 @@ impl AccountsStorage for InMemoryAccountsStorage {
         self.accounts_transactions.get(&client_id)
     }
 
+    fn get_transactions_mut(&mut self, client_id: ClientId) -> Option<&mut Vec<Transaction>> {
+        self.accounts_transactions.get_mut(&client_id)
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

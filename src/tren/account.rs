@@ -11,7 +11,7 @@ pub enum AccountOperationError {
     NotEnoughFunds,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum AccountStatus {
     /// the account is operational
     Operational,
@@ -19,7 +19,7 @@ pub enum AccountStatus {
     Frozen,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Account {
     pub client_id: ClientId,
     /// amount that the account has on hold until a dispute is resolved
