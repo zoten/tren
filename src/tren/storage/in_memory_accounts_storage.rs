@@ -8,19 +8,12 @@ use crate::tren::{account::Account, client::ClientId, transactions::Transaction}
 
 use super::store::{AccountsStorage, StoreError};
 
+#[derive(Default)]
 pub struct InMemoryAccountsStorage {
     accounts: HashMap<ClientId, Account>,
     accounts_transactions: HashMap<ClientId, Vec<Transaction>>,
 }
 
-impl Default for InMemoryAccountsStorage {
-    fn default() -> Self {
-        InMemoryAccountsStorage {
-            accounts: HashMap::new(),
-            accounts_transactions: HashMap::new(),
-        }
-    }
-}
 
 impl AccountsStorage for InMemoryAccountsStorage {
     fn get_or_create(&mut self, client_id: ClientId) -> Result<&mut Account, StoreError> {
@@ -48,7 +41,7 @@ impl AccountsStorage for InMemoryAccountsStorage {
     fn push_transaction(&mut self, client_id: ClientId, transaction: Transaction) {
         self.accounts_transactions
             .entry(client_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(transaction);
     }
 

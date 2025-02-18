@@ -11,7 +11,7 @@ pub struct RunnerContext<'a> {
 impl<'a> RunnerContext<'a> {
     pub fn new(accounts_store: &'a mut Box<dyn AccountsStorage>) -> Self {
         RunnerContext {
-            accounts_store: accounts_store,
+            accounts_store,
         }
     }
 }

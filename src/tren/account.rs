@@ -29,7 +29,7 @@ pub struct Account {
 impl Account {
     pub fn new(client_id: ClientId) -> Self {
         Account {
-            client_id: client_id,
+            client_id,
             held_amount: dec!(0),
             amount: dec!(0),
             status: AccountStatus::Operational,
