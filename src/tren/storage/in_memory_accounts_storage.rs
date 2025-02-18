@@ -4,18 +4,20 @@
 
 use std::{any::Any, collections::HashMap};
 
-use crate::tren::{account::Account, client::ClientId};
+use crate::tren::{account::Account, client::ClientId, transactions::Transaction};
 
 use super::store::{AccountsStorage, StoreError};
 
 pub struct InMemoryAccountsStorage {
-    store: HashMap<ClientId, Account>,
+    accounts: HashMap<ClientId, Account>,
+    accounts_transactions: HashMap<ClientId, Vec<Transaction>>,
 }
 
 impl Default for InMemoryAccountsStorage {
     fn default() -> Self {
         InMemoryAccountsStorage {
-            store: HashMap::new(),
+            accounts: HashMap::new(),
+            accounts_transactions: HashMap::new(),
         }
     }
 }
@@ -23,24 +25,35 @@ impl Default for InMemoryAccountsStorage {
 impl AccountsStorage for InMemoryAccountsStorage {
     fn get_or_create(&mut self, client_id: ClientId) -> Result<&mut Account, StoreError> {
         let account = self
-            .store
+            .accounts
             .entry(client_id)
             .or_insert_with(|| Account::new(client_id));
         Ok(account)
     }
 
     fn get(&self, client_id: ClientId) -> Result<Option<&Account>, StoreError> {
-        let maybe_account = self.store.get(&client_id);
+        let maybe_account = self.accounts.get(&client_id);
         Ok(maybe_account)
     }
 
     fn put(&mut self, account: Account) -> Result<(), StoreError> {
-        self.store.insert(account.client_id, account);
+        self.accounts.insert(account.client_id, account);
         Ok(())
     }
 
     fn list(&self) -> Vec<&Account> {
-        self.store.values().collect()
+        self.accounts.values().collect()
+    }
+
+    fn push_transaction(&mut self, client_id: ClientId, transaction: Transaction) {
+        self.accounts_transactions
+            .entry(client_id)
+            .or_insert_with(|| vec![])
+            .push(transaction);
+    }
+
+    fn get_transactions(&self, client_id: ClientId) -> Option<&Vec<Transaction>> {
+        self.accounts_transactions.get(&client_id)
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -50,7 +63,7 @@ impl AccountsStorage for InMemoryAccountsStorage {
 
 #[cfg(test)]
 mod tests {
-    use crate::tren::account::AccountStatus;
+    use crate::tren::{account::AccountStatus, client};
 
     use super::*;
 
@@ -134,6 +147,18 @@ mod tests {
         let accounts = store.list();
         // Then
         assert_eq!(accounts.len(), 2);
+    }
+
+    #[test]
+    fn get_and_push_transactions_test() {
+        // With
+        let store = InMemoryAccountsStorage::default();
+        let client_id = client_id();
+
+        // when
+        let no_transactions = store.get_transactions(client_id);
+        // then
+        assert!(no_transactions.is_none());
     }
 
     fn client_id() -> ClientId {

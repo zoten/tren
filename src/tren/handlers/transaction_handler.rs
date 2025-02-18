@@ -3,7 +3,10 @@
 use std::any::Any;
 
 use crate::tren::{
-    engine::{context::RunnerContext, runner::RunnerError},
+    engine::{
+        context::RunnerContext,
+        runner::{RunnerError, RunnerOutcome},
+    },
     transactions::Transaction,
 };
 
@@ -12,7 +15,7 @@ pub trait TransactionHandler {
         &mut self,
         transaction: Transaction,
         context: &mut RunnerContext,
-    ) -> Result<(), RunnerError>;
+    ) -> Result<RunnerOutcome, RunnerError>;
     // required for downcasting in tests
     fn as_any(&self) -> &dyn Any;
 }

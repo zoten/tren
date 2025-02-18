@@ -1,5 +1,8 @@
 use crate::tren::{
-    engine::{context::RunnerContext, runner::RunnerError},
+    engine::{
+        context::RunnerContext,
+        runner::{RunnerError, RunnerOutcome},
+    },
     transactions::Transaction,
 };
 use std::any::Any;
@@ -12,10 +15,10 @@ impl TransactionHandler for PrintHandler {
     fn handle(
         &mut self,
         transaction: Transaction,
-        context: &mut RunnerContext,
-    ) -> Result<(), RunnerError> {
+        _context: &mut RunnerContext,
+    ) -> Result<RunnerOutcome, RunnerError> {
         println!("{:?}", transaction);
-        Ok(())
+        Ok(RunnerOutcome::Success)
     }
 
     fn as_any(&self) -> &dyn Any {

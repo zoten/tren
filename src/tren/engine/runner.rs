@@ -19,6 +19,15 @@ pub enum RunnerError {
     FileDoesNotExists(String),
     #[error("Row [{0}] could not be deserialized")]
     InvalidRow(String),
+    #[error("Storage encountered an error")]
+    StorageError,
+}
+
+/// successful outcomes for a transaction handling
+#[derive(Debug)]
+pub enum RunnerOutcome {
+    Success,
+    Skipped,
 }
 
 pub struct Runner<'a> {
@@ -60,15 +69,15 @@ impl<'a> Runner<'a> {
             .create_deserializer(buf_reader)
             .into_deserialize::<Transaction>();
 
-        let mut context = RunnerContext::new(&self.accounts_store);
+        let mut context = RunnerContext::new(&mut self.accounts_store);
 
         // Stream through each record
         while let Some(result) = csv_reader.next().await {
-            let record = result.map_err(|err| {
-                print!("{:?}", err);
-                RunnerError::InvalidRow(String::from("TODO"))
-            })?;
-            print!("{:?}", record);
+            let record = result
+                .map_err(|_err| RunnerError::InvalidRow(String::from("TODO")))?
+                .validate()
+                .map_err(|_err| RunnerError::InvalidRow(String::from("TODO2")))?;
+            //print!("{:?}", record);
 
             self.handler.handle(record, &mut context)?;
         }

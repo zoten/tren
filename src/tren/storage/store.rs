@@ -5,7 +5,7 @@
 
 use std::any::Any;
 
-use crate::tren::{account::Account, client::ClientId};
+use crate::tren::{account::Account, client::ClientId, transactions::Transaction};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -17,6 +17,8 @@ pub enum StoreError {
 }
 
 pub trait AccountsStorage {
+    // Accounts
+
     // Returns a mutable reference to the account with given `client_id`
     /// If account doesn't exist, it is created with `client_id` and default values
     fn get_or_create(&mut self, client_id: ClientId) -> Result<&mut Account, StoreError>;
@@ -26,6 +28,10 @@ pub trait AccountsStorage {
     fn put(&mut self, account: Account) -> Result<(), StoreError>;
     /// Returns a vector containing references to all stored accounts.
     fn list(&self) -> Vec<&Account>;
+
+    // Accounts transactions
+    fn push_transaction(&mut self, client_id: ClientId, transaction: Transaction);
+    fn get_transactions(&self, client_id: ClientId) -> Option<&Vec<Transaction>>;
 
     // required for downcasting in tests
     fn as_any(&self) -> &dyn Any;

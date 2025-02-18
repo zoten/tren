@@ -10,7 +10,7 @@ pub type Amount = Decimal;
 pub type TransactionId = u32;
 
 // I know I could probably rename_all but I prefer to be explicit to avoid renaming/adding confusion
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub enum TransactionType {
     /// an amount is being added to the funds
     #[serde(rename = "deposit")]
@@ -27,16 +27,16 @@ pub enum TransactionType {
     Chargeback,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct Transaction {
     #[serde(rename = "type")]
-    transaction_type: TransactionType,
+    pub transaction_type: TransactionType,
     #[serde(rename = "client")]
-    client_id: ClientId,
+    pub client_id: ClientId,
     #[serde(rename = "tx")]
-    transaction_id: TransactionId,
+    pub transaction_id: TransactionId,
     #[serde(rename = "amount")]
-    amount: Option<Amount>,
+    pub amount: Option<Amount>,
 }
 
 impl Transaction {
@@ -53,5 +53,17 @@ impl Transaction {
             transaction_id,
             amount,
         }
+    }
+
+    pub fn validate(self) -> Result<Self, ()> {
+        match self.transaction_type {
+            TransactionType::Deposit => self.amount.is_some(),
+            TransactionType::Withdrawal => self.amount.is_some(),
+            TransactionType::Chargeback => self.amount.is_none(),
+            TransactionType::Dispute => self.amount.is_none(),
+            TransactionType::Resolve => self.amount.is_none(),
+        }
+        .then(|| self)
+        .ok_or(())
     }
 }

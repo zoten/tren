@@ -5,11 +5,11 @@ use crate::tren::storage::store::AccountsStorage;
 
 // in terms of reuse this could also become a trait
 pub struct RunnerContext<'a> {
-    accounts_store: &'a Box<dyn AccountsStorage>,
+    pub accounts_store: &'a mut Box<dyn AccountsStorage>,
 }
 
 impl<'a> RunnerContext<'a> {
-    pub fn new(accounts_store: &'a Box<dyn AccountsStorage>) -> Self {
+    pub fn new(accounts_store: &'a mut Box<dyn AccountsStorage>) -> Self {
         RunnerContext {
             accounts_store: accounts_store,
         }

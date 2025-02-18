@@ -1,20 +1,14 @@
 // Account representation for transactional state
-//
+// Note that by design the `impl` of Account just allow to act on primitive types
+// while the business logic is left to the handler. This way any exception can be managed
+// at a handler level. Choice could be different if Account had to be treated as an aggregate
+// in a CQRS/ES system
 use crate::tren::client::ClientId;
 use crate::tren::transactions::Amount;
-use thiserror::Error;
-
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
-#[derive(Error, Debug)]
-pub enum TransactionError {
-    /// the account's balance is not enough
-    #[error("Balance is not enough for the operation")]
-    InsufficientBalance,
-}
-
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum AccountStatus {
     /// the account is operational
     Operational,
@@ -42,24 +36,42 @@ impl Account {
         }
     }
 
-    /// deposit funds
+    /// Deposit funds
     pub fn deposit(&mut self, amount: Amount) {
         self.amount += amount;
     }
 
-    /// total of available amount plus the amount on hold for disputes
+    /// Withdraw funds
+    pub fn withdraw(&mut self, amount: Amount) {
+        self.amount -= amount;
+    }
+
+    /// Total of available amount plus the amount on hold for disputes
     pub fn total(&self) -> Decimal {
         self.held_amount + self.amount
     }
 
-    pub fn hold(&mut self, amount_to_hold: Amount) -> Result<(), ()> {
-        if self.amount < amount_to_hold {
-            return Err(());
-        }
-
+    /// Hold some funds. This means the available amount will be reduced by held amount
+    /// Note that funds could become negative this way, since we could be disputing a transaction
+    /// happened before withrawn events
+    pub fn hold(&mut self, amount_to_hold: Amount) {
         self.amount -= amount_to_hold;
         self.held_amount += amount_to_hold;
-        Ok(())
+    }
+
+    /// set the status of an account to `Frozen`
+    pub fn freeze(&mut self) {
+        self.status = AccountStatus::Frozen;
+    }
+
+    /// set the status of an account to `Operational`
+    pub fn unfreeze(&mut self) {
+        self.status = AccountStatus::Operational;
+    }
+
+    /// is the account frozen?
+    pub fn frozen(&self) -> bool {
+        self.status == AccountStatus::Frozen
     }
 }
 
@@ -82,9 +94,7 @@ mod test {
         assert_eq!(account.total(), total);
 
         // when
-        account
-            .hold(dec!(51))
-            .expect("Expected amount to be holdable");
+        account.hold(dec!(51));
 
         // then
         assert_eq!(account.total(), total);
@@ -103,12 +113,40 @@ mod test {
         };
 
         // when
-        account
-            .hold(amount_to_hold)
-            .expect("Expected amount to be holdable");
+        account.hold(amount_to_hold);
 
         // then
         assert_eq!(account.held_amount, amount_to_hold);
         assert_eq!(account.amount, dec!(49));
+    }
+
+    #[test]
+    fn deposit_and_withdraw_operations() {
+        // with
+        let amount_to_deposit = dec!(50);
+        let initial_amount = dec!(100);
+        let amount_to_withdraw = dec!(149);
+
+        let mut account = Account {
+            client_id: 12,
+            held_amount: dec!(0),
+            amount: initial_amount,
+            status: AccountStatus::Operational,
+        };
+
+        // when
+        account.deposit(amount_to_deposit);
+
+        // then
+        assert_eq!(account.amount, initial_amount + amount_to_deposit);
+
+        // when
+        account.withdraw(amount_to_withdraw);
+
+        // then
+        assert_eq!(
+            account.amount,
+            initial_amount + amount_to_deposit - amount_to_withdraw
+        );
     }
 }
