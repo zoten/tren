@@ -1,4 +1,4 @@
-use crate::tren::account::Account;
+use crate::tren::account::{Account, AccountOperationError};
 use crate::tren::engine::context::RunnerContext;
 // This is the "real" default executor for production environment
 use crate::tren::engine::runner::{RunnerError, RunnerOutcome};
@@ -75,8 +75,12 @@ impl ExecuteHandler {
         account: &mut Account,
         transaction: &Transaction,
     ) -> Result<RunnerOutcome, RunnerError> {
-        account.withdraw(transaction.amount.expect("Invalid transaction found"));
-        Ok(RunnerOutcome::Success)
+        let amount_to_withdraw = transaction.amount.expect("Invalid transaction found");
+
+        match account.withdraw(amount_to_withdraw) {
+            Err(AccountOperationError::NotEnoughFunds) => Ok(RunnerOutcome::Skipped),
+            Ok(()) => Ok(RunnerOutcome::Success),
+        }
     }
 
     /// a previous transaction is being disputed. Funds will be held

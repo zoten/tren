@@ -1,12 +1,15 @@
 // Account representation for transactional state
-// Note that by design the `impl` of Account just allow to act on primitive types
-// while the business logic is left to the handler. This way any exception can be managed
-// at a handler level. Choice could be different if Account had to be treated as an aggregate
-// in a CQRS/ES system
 use crate::tren::client::ClientId;
 use crate::tren::transactions::Amount;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum AccountOperationError {
+    #[error("Not enough funds for the operation")]
+    NotEnoughFunds,
+}
 
 #[derive(Clone, PartialEq)]
 pub enum AccountStatus {
@@ -42,8 +45,12 @@ impl Account {
     }
 
     /// Withdraw funds
-    pub fn withdraw(&mut self, amount: Amount) {
+    pub fn withdraw(&mut self, amount: Amount) -> Result<(), AccountOperationError> {
+        if self.amount < amount {
+            return Err(AccountOperationError::NotEnoughFunds);
+        }
         self.amount -= amount;
+        Ok(())
     }
 
     /// Total of available amount plus the amount on hold for disputes
@@ -152,12 +159,22 @@ mod test {
         assert_eq!(account.amount, initial_amount + amount_to_deposit);
 
         // when
-        account.withdraw(amount_to_withdraw);
+        account
+            .withdraw(amount_to_withdraw)
+            .expect("Expect to be withdrawable");
 
         // then
         assert_eq!(
             account.amount,
             initial_amount + amount_to_deposit - amount_to_withdraw
         );
+
+        // when
+        let too_much_to_withdraw = dec!(100000);
+        let prev_total = account.total();
+        assert!(account.withdraw(too_much_to_withdraw).is_err());
+
+        // then
+        assert_eq!(account.total(), prev_total);
     }
 }
