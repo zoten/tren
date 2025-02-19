@@ -259,6 +259,22 @@ mod test {
         assert_eq!(account.total(), dec!(2));
     }
 
+    #[tokio::test]
+    async fn malformed_test() {
+        let test_csv_path = "src/tests/malformed.csv";
+
+        let mut runner = get_executor_runner();
+        assert!(runner.run_from_path(&test_csv_path).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn does_not_exist_test() {
+        let test_csv_path = "src/tests/does_not_exist.csv";
+
+        let mut runner = get_executor_runner();
+        assert!(runner.run_from_path(&test_csv_path).await.is_err());
+    }
+
     fn get_runner<'a>() -> Runner<'a> {
         let collect_handler = CollectHandler {
             transactions: vec![],
