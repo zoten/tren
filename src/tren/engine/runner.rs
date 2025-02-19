@@ -90,6 +90,8 @@ impl<'a> Runner<'a> {
 // I'm using a concrete e2e-like test here just not to use too much time in playing
 // with lifetimes and exotic stream types by splitting the stream producer and the handle loop in
 // run_from_path
+// Also, some tests here are testing more than one thing. Although it is an antipattern, I think for the
+// sake of an exercise this compromise is good enough
 // however, should the csv come from other sources (TCP/gRPC streams etc) this division should be implemented
 // Also, should the sources be different and parallel, more business rules should be made clear (e.g. if streams
 // can include information for the same client, how to handle chronological order etc) so that proper parallelization
