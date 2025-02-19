@@ -21,8 +21,8 @@ impl TransactionHandler for ExecuteHandler {
             .map_err(|_| RunnerError::StorageError)?
             .clone();
 
-        println!("------");
-        println!("{:?}", account);
+        // println!("------");
+        // println!("{:?}", account);
 
         // if the account is locked, let's ignore the operation
         if account.frozen() {
@@ -45,7 +45,7 @@ impl TransactionHandler for ExecuteHandler {
                 context
                     .accounts_store
                     .push_transaction(account.client_id, transaction);
-                println!("{:?}", account);
+                // println!("{:?}", account);
                 // Update Account in storage
                 context
                     .accounts_store

@@ -1,19 +1,14 @@
 use crate::tren::account::Account;
 
+#[derive(Default)]
 pub struct CsvPrinter {}
-
-impl Default for CsvPrinter {
-    fn default() -> Self {
-        CsvPrinter {}
-    }
-}
 
 impl<'a> CsvPrinter {
     pub fn print(&self, accounts_iter: impl Iterator<Item = &'a Account>) {
-        print!("{}\n", self.csv_header());
+        println!("{}", self.csv_header());
 
         for account in accounts_iter {
-            print!("{}\n", self.account_csv(&account))
+            println!("{}", self.account_csv(account))
         }
     }
 
@@ -24,11 +19,11 @@ impl<'a> CsvPrinter {
     fn account_csv(&self, account: &Account) -> String {
         format!(
             "{client_id}, {available:.4}, {held:.4}, {total:.4}, {locked}",
-            client_id = account.client_id.to_string(),
+            client_id = account.client_id,
             available = account.amount.round_dp(4),
             held = account.held_amount.round_dp(4),
             total = account.total().round_dp(4),
-            locked = account.frozen().to_string()
+            locked = account.frozen()
         )
     }
 }

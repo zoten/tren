@@ -234,8 +234,29 @@ mod test {
             .expect("Get should work")
             .expect("Account 1 should exist");
 
-        // 1 + 2 - 1.5 + (dispute a non existent tx) + 2 + (resolve a non disputed tx) + (chargeback a non disputed tx)
+        // 1 + 2 - 1.5 + (dispute a non existent tx) + 2 + (resolve a non disputed tx) + (chargeback a non disputed tx, account is not locked)
+        assert!(!account.frozen());
         assert_eq!(account.total(), dec!(3.5));
+    }
+
+    #[tokio::test]
+    async fn don_t_be_greedy_test() {
+        let test_csv_path = "src/tests/don_t_be_greedy.csv";
+
+        let mut runner = get_executor_runner();
+        let result = runner
+            .run_from_path(&test_csv_path)
+            .await
+            .expect("Expected an Ok value");
+
+        let account = result
+            .accounts_store
+            .get(1)
+            .expect("Get should work")
+            .expect("Account 1 should exist");
+
+        // 2 + 1 + 2 - (cannot withdraw 500, let's skip) -3
+        assert_eq!(account.total(), dec!(2));
     }
 
     fn get_runner<'a>() -> Runner<'a> {
