@@ -14,7 +14,8 @@ mod tests {
         assert!(output.status.success(), "Process exited abnormally");
 
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("amount"), "Output did not contain `amount`");
+        println!("{:?}", stdout);
+        assert!(stdout.contains("locked"), "Output did not contain `locked`");
         // not exhaustive of course but "good enough": the file has a 1.00009 - 5 digits after decimals
         // that by assumptions will be accepted and then rounded
         assert!(
