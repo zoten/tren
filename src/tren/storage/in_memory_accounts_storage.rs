@@ -20,7 +20,7 @@ pub struct InMemoryAccountsStorage {
 
 impl AccountsStorage for InMemoryAccountsStorage {
     fn count_accounts(&self) -> usize {
-        return self.accounts.len();
+        self.accounts.len()
     }
 
     fn all_accounts_iter(&self) -> Box<dyn Iterator<Item = &Account> + '_> {
