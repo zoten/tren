@@ -202,19 +202,19 @@ impl ExecuteHandler {
         &mut self,
         account: &mut Account,
         transaction: &Transaction,
-        context: &RunnerContext,
+        context: &mut RunnerContext,
     ) -> Result<RunnerOutcome, RunnerError> {
         // Get the transaction
         let transactions = match context
             .accounts_store
-            .get_transactions(transaction.client_id)
+            .get_transactions_mut(transaction.client_id)
         {
             None => return Ok(RunnerOutcome::Skipped),
             Some(transactions) => transactions,
         };
 
         if let Some(original_transaction) = transactions
-            .iter()
+            .iter_mut()
             .find(|t| t.transaction_id == transaction.transaction_id)
         {
             match original_transaction {
@@ -230,6 +230,7 @@ impl ExecuteHandler {
                 } => {
                     // transaction has already been validated at this point, so unwrap is ugly but safe
                     account.chargeback(original_transaction.amount.expect("This Chargeback->Deposit/Withdrawal transaction should have an amount and should have been already validated"));
+                    original_transaction.chargeback();
                     account.freeze();
                     Ok(RunnerOutcome::Success)
                 }

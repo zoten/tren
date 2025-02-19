@@ -207,7 +207,7 @@ mod test {
         let transaction = result
             .accounts_store
             .find_transaction(client_id, transaction_id)
-            .expect("Transaction shoul have been found");
+            .expect("Transaction should have been found");
 
         assert_eq!(transaction.status, TransactionStatus::Executed);
     }
@@ -215,6 +215,11 @@ mod test {
     #[tokio::test]
     async fn simple_disputed_chargeback_test() {
         let test_csv_path = "src/tests/simple_disputed_chargeback.csv";
+        let client_id = 1;
+        // withdrawal, 1,      4,  1.5
+        // ..
+        // chargeback, 1,      4,
+        let transaction_id = 4;
 
         let mut runner = get_executor_runner();
         let result = runner
@@ -231,6 +236,14 @@ mod test {
         // 1 + 2 - 1.5 (disputed) + 2 + (chargeback) + frozen (ignore subsequent transactions)
         assert!(account.frozen());
         assert_eq!(account.total(), dec!(2));
+
+        // let's also test a transaction is set as charged back
+        let transaction = result
+            .accounts_store
+            .find_transaction(client_id, transaction_id)
+            .expect("Transaction should have been found");
+
+        assert_eq!(transaction.status, TransactionStatus::ChargedBack);
     }
 
     #[tokio::test]
