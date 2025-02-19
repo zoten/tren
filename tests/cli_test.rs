@@ -8,7 +8,7 @@ mod tests {
         let binary = option_env!("CARGO_BIN_EXE_tren").unwrap();
         println!("{:?}", binary);
         let output = Command::new(binary)
-            .arg("src/tests/base_transactions.csv")
+            .arg("src/tests/cli.csv")
             .output()
             .expect("failed to execute process");
 
@@ -16,6 +16,12 @@ mod tests {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("amount"), "Output did not contain `amount`");
+        // not exhaustive of course but "good enough": the file has a 1.00009 - 5 digits after decimals
+        // that by assumptions will be accepted and then rounded
+        assert!(
+            stdout.contains("1.0001"),
+            "Output seems not rounded to the 4th decimal"
+        );
     }
 
     #[test]
