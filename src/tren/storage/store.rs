@@ -5,7 +5,11 @@
 
 use std::any::Any;
 
-use crate::tren::{account::Account, client::ClientId, transactions::Transaction};
+use crate::tren::{
+    account::Account,
+    client::ClientId,
+    transactions::{Transaction, TransactionId},
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -36,6 +40,11 @@ pub trait AccountsStorage {
     fn push_transaction(&mut self, client_id: ClientId, transaction: Transaction);
     fn get_transactions(&self, client_id: ClientId) -> Option<&Vec<Transaction>>;
     fn get_transactions_mut(&mut self, client_id: ClientId) -> Option<&mut Vec<Transaction>>;
+    fn find_transaction(
+        &self,
+        client_id: ClientId,
+        transaction_id: TransactionId,
+    ) -> Option<&Transaction>;
 
     // required for downcasting in tests
     fn as_any(&self) -> &dyn Any;

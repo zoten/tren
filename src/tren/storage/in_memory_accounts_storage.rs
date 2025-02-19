@@ -4,7 +4,11 @@
 
 use std::{any::Any, collections::HashMap};
 
-use crate::tren::{account::Account, client::ClientId, transactions::Transaction};
+use crate::tren::{
+    account::Account,
+    client::ClientId,
+    transactions::{Transaction, TransactionId},
+};
 
 use super::store::{AccountsStorage, StoreError};
 
@@ -54,6 +58,18 @@ impl AccountsStorage for InMemoryAccountsStorage {
 
     fn get_transactions_mut(&mut self, client_id: ClientId) -> Option<&mut Vec<Transaction>> {
         self.accounts_transactions.get_mut(&client_id)
+    }
+
+    /// find a transaction for a specific account with a specific tx id
+    fn find_transaction(
+        &self,
+        client_id: ClientId,
+        transaction_id: TransactionId,
+    ) -> Option<&Transaction> {
+        self.accounts_transactions
+            .get(&client_id)?
+            .iter()
+            .find(|t| t.transaction_id == transaction_id)
     }
 
     fn as_any(&self) -> &dyn Any {

@@ -103,7 +103,7 @@ mod test {
     use crate::tren::handlers::collect_handler::CollectHandler;
     use crate::tren::handlers::execute_handler::ExecuteHandler;
     use crate::tren::storage::in_memory_accounts_storage::InMemoryAccountsStorage;
-    use crate::tren::transactions::{Transaction, TransactionType};
+    use crate::tren::transactions::{Transaction, TransactionStatus, TransactionType};
     use rust_decimal_macros::dec;
 
     // TODO: this should be separate tests with decent separation, but at this
@@ -185,6 +185,8 @@ mod test {
     #[tokio::test]
     async fn simple_disputed_resolve_test() {
         let test_csv_path = "src/tests/simple_disputed_resolve.csv";
+        let client_id = 1;
+        let transaction_id = 4;
 
         let mut runner = get_executor_runner();
         let result = runner
@@ -200,6 +202,14 @@ mod test {
 
         // 1 + 2 - 1.5 (disputed) + 2 + (resolved)
         assert_eq!(account.total(), dec!(3.5));
+
+        // let's also test a transaction has been set back as executed
+        let transaction = result
+            .accounts_store
+            .find_transaction(client_id, transaction_id)
+            .expect("Transaction shoul have been found");
+
+        assert_eq!(transaction.status, TransactionStatus::Executed);
     }
 
     #[tokio::test]
@@ -262,6 +272,28 @@ mod test {
 
         // 2 + 1 + 2 - (cannot withdraw 500, let's skip) -3
         assert_eq!(account.total(), dec!(2));
+    }
+
+    #[tokio::test]
+    async fn don_t_dispute_skipped_transactions_test() {
+        let test_csv_path = "src/tests/don_t_dispute_skipped_transactions.csv";
+        let client_id = 1;
+        // withdrawal, 1,      4,  500
+        let disputed_skipped_transaction_id = 4;
+
+        let mut runner = get_executor_runner();
+        let result = runner
+            .run_from_path(&test_csv_path)
+            .await
+            .expect("Expected an Ok value");
+
+        let withdrawal_operation = result
+            .accounts_store
+            .find_transaction(client_id, disputed_skipped_transaction_id)
+            .expect("Transaction should have been found");
+
+        // 2 + 1 + 2 - (cannot withdraw 500, let's skip) -3
+        assert_eq!(withdrawal_operation.status, TransactionStatus::Skipped);
     }
 
     #[tokio::test]

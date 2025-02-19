@@ -36,13 +36,15 @@ pub enum TransactionType {
 
 #[derive(Deserialize, PartialEq, Clone, Debug)]
 pub enum TransactionStatus {
-    Valid,
+    Ready,
+    Executed,
     Disputed,
     ChargedBack,
+    Skipped,
 }
 
 fn default_status() -> TransactionStatus {
-    TransactionStatus::Valid
+    TransactionStatus::Ready
 }
 
 #[derive(Deserialize, Debug, PartialEq, Clone)]
@@ -72,7 +74,7 @@ impl Transaction {
             client_id,
             transaction_id,
             amount,
-            status: TransactionStatus::Valid,
+            status: default_status(),
         }
     }
 
@@ -94,10 +96,18 @@ impl Transaction {
     }
 
     pub fn resolve(&mut self) {
-        self.status = TransactionStatus::Valid;
+        self.status = TransactionStatus::Executed;
     }
 
     pub fn chargeback(&mut self) {
         self.status = TransactionStatus::ChargedBack;
+    }
+
+    pub fn skipped(&mut self) {
+        self.status = TransactionStatus::Skipped;
+    }
+
+    pub fn executed(&mut self) {
+        self.status = TransactionStatus::Executed;
     }
 }

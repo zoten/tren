@@ -40,11 +40,14 @@ impl TransactionHandler for ExecuteHandler {
         };
 
         match result {
-            Ok(res) => {
+            Ok(outcome) => {
+                // let's forgive this small clone for now
+                let mut new_transaction = transaction.clone();
+                self.update_transaction(&mut new_transaction, &outcome);
                 // Add transaction to account's log
                 context
                     .accounts_store
-                    .push_transaction(account.client_id, transaction);
+                    .push_transaction(account.client_id, new_transaction);
                 // println!("{:?}", account);
                 // Update Account in storage
                 context
@@ -52,7 +55,7 @@ impl TransactionHandler for ExecuteHandler {
                     .put(account)
                     .map_err(|_| RunnerError::StorageError)?;
 
-                Ok(res)
+                Ok(outcome)
             }
 
             Err(err) => Err(err),
@@ -65,6 +68,13 @@ impl TransactionHandler for ExecuteHandler {
 }
 
 impl ExecuteHandler {
+    fn update_transaction(&self, transaction: &mut Transaction, outcome: &RunnerOutcome) {
+        match outcome {
+            RunnerOutcome::Skipped => transaction.skipped(),
+            RunnerOutcome::Success => transaction.executed(),
+        }
+    }
+
     fn handle_deposit(
         &mut self,
         account: &mut Account,
@@ -88,6 +98,7 @@ impl ExecuteHandler {
     }
 
     /// a previous transaction is being disputed. Funds will be held
+    /// only executed transactions may be disputed
     fn handle_dispute(
         &mut self,
         account: &mut Account,
@@ -110,10 +121,12 @@ impl ExecuteHandler {
             match original_transaction {
                 Transaction {
                     transaction_type: TransactionType::Deposit,
+                    status: TransactionStatus::Executed,
                     ..
                 }
                 | Transaction {
                     transaction_type: TransactionType::Withdrawal,
+                    status: TransactionStatus::Executed,
                     ..
                 } => {
                     // transaction has already been validated at this point, so unwrap is ugly but safe
@@ -122,6 +135,7 @@ impl ExecuteHandler {
                     Ok(RunnerOutcome::Success)
                 }
                 _ => {
+                    // the original transaction is already in Disputed state
                     // the original transaction is not a money movement: what to do?
                     // skipping for now
                     Ok(RunnerOutcome::Skipped)
@@ -138,19 +152,19 @@ impl ExecuteHandler {
         &mut self,
         account: &mut Account,
         transaction: &Transaction,
-        context: &RunnerContext,
+        context: &mut RunnerContext,
     ) -> Result<RunnerOutcome, RunnerError> {
         // Get the transaction
         let transactions = match context
             .accounts_store
-            .get_transactions(transaction.client_id)
+            .get_transactions_mut(transaction.client_id)
         {
             None => return Ok(RunnerOutcome::Skipped),
             Some(transactions) => transactions,
         };
 
         if let Some(original_transaction) = transactions
-            .iter()
+            .iter_mut()
             .find(|t| t.transaction_id == transaction.transaction_id)
         {
             match original_transaction {
@@ -166,6 +180,7 @@ impl ExecuteHandler {
                 } => {
                     // transaction has already been validated at this point, so unwrap is ugly but safe
                     account.release(original_transaction.amount.expect("This Resolve->Deposit/Withdrawal transaction should have an amount and should have been already validated"));
+                    original_transaction.resolve();
                     Ok(RunnerOutcome::Success)
                 }
                 _ => {
