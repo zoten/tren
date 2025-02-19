@@ -45,7 +45,6 @@ impl TransactionHandler for ExecuteHandler {
                 let mut new_transaction = transaction.clone();
                 // maybe update a skipped transactopm
                 self.update_transaction(&mut new_transaction, &outcome);
-                println!("{:?}", new_transaction);
 
                 // Add transaction to account's log
                 context

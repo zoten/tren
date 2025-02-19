@@ -352,7 +352,6 @@ mod test {
             .get(ci1)
             .expect("Expected success")
             .expect("Expected account");
-        println!("{:?}", ac1);
         assert!(ac1.frozen());
         assert_eq!(ac1.held_amount, dec!(0));
         assert_eq!(ac1.amount, dec!(298.1234));
@@ -363,7 +362,6 @@ mod test {
             .get(ci2)
             .expect("Expected success")
             .expect("Expected account");
-        println!("{:?}", ac2);
         assert!(!ac2.frozen());
         assert_eq!(ac2.held_amount, dec!(0)); // all disputes have been resolved
         assert_eq!(ac2.amount, dec!(10199.1235));
@@ -376,7 +374,6 @@ mod test {
             .get(ci3)
             .expect("Expected success")
             .expect("Expected account");
-        println!("{:?}", ac3);
         let t3_disputed = result
             .accounts_store
             .find_non_disputing_transaction(ci3, tid3_disputed)

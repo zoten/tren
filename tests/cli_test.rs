@@ -6,7 +6,6 @@ mod tests {
     fn successful_cli_invocation() {
         // CARGO_BIN_EXE_<name> env set by cargo on tests
         let binary = option_env!("CARGO_BIN_EXE_tren").unwrap();
-        println!("{:?}", binary);
         let output = Command::new(binary)
             .arg("src/tests/cli.csv")
             .output()
@@ -28,7 +27,6 @@ mod tests {
     fn unsuccessful_cli_invocation() {
         // Cargo sets the CARGO_BIN_EXE_<name> environment variable for tests.
         let binary = option_env!("CARGO_BIN_EXE_tren").unwrap();
-        println!("{:?}", binary);
         let output = Command::new(binary)
             .arg("src/tests/random_nonexistent_file0989072839743.csv")
             .output()
