@@ -19,6 +19,10 @@ pub struct InMemoryAccountsStorage {
 }
 
 impl AccountsStorage for InMemoryAccountsStorage {
+    fn count_accounts(&self) -> usize {
+        return self.accounts.len();
+    }
+
     fn all_accounts_iter(&self) -> Box<dyn Iterator<Item = &Account> + '_> {
         Box::new(self.accounts.values())
     }
@@ -60,8 +64,9 @@ impl AccountsStorage for InMemoryAccountsStorage {
         self.accounts_transactions.get_mut(&client_id)
     }
 
-    /// find a transaction for a specific account with a specific tx id
-    fn find_transaction(
+    /// find an "active" transaction (meaning a withdrawal or deposit that moves money)
+    /// for a specific account with a specific tx id
+    fn find_non_disputing_transaction(
         &self,
         client_id: ClientId,
         transaction_id: TransactionId,
@@ -69,7 +74,21 @@ impl AccountsStorage for InMemoryAccountsStorage {
         self.accounts_transactions
             .get(&client_id)?
             .iter()
-            .find(|t| t.transaction_id == transaction_id)
+            .find(|t| (t.transaction_id == transaction_id) && (!t.is_disputing()))
+    }
+
+    /// find an "active" transaction (meaning a withdrawal or deposit that moves money)
+    /// for a specific account with a specific tx id
+    /// like `find_non_disputing_transaction` but gets a mutable reference
+    fn find_non_disputing_transaction_mut(
+        &mut self,
+        client_id: ClientId,
+        transaction_id: TransactionId,
+    ) -> Option<&mut Transaction> {
+        self.accounts_transactions
+            .get_mut(&client_id)?
+            .iter_mut()
+            .find(|t| (t.transaction_id == transaction_id) && (!t.is_disputing()))
     }
 
     fn as_any(&self) -> &dyn Any {

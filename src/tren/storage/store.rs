@@ -22,6 +22,8 @@ pub enum StoreError {
 
 pub trait AccountsStorage {
     // Accounts
+    /// just count accounts
+    fn count_accounts(&self) -> usize;
     /// returns an iterator on all accounts
     // not proud of this signature, but at this point to make it object-safe that's the fastest way
     fn all_accounts_iter(&self) -> Box<dyn Iterator<Item = &Account> + '_>;
@@ -37,14 +39,20 @@ pub trait AccountsStorage {
     fn list(&self) -> Vec<&Account>;
 
     // Accounts transactions
+    // There's a little api inconsistency here where  everything should be wrapped as a Result
     fn push_transaction(&mut self, client_id: ClientId, transaction: Transaction);
     fn get_transactions(&self, client_id: ClientId) -> Option<&Vec<Transaction>>;
     fn get_transactions_mut(&mut self, client_id: ClientId) -> Option<&mut Vec<Transaction>>;
-    fn find_transaction(
+    fn find_non_disputing_transaction(
         &self,
         client_id: ClientId,
         transaction_id: TransactionId,
     ) -> Option<&Transaction>;
+    fn find_non_disputing_transaction_mut(
+        &mut self,
+        client_id: ClientId,
+        transaction_id: TransactionId,
+    ) -> Option<&mut Transaction>;
 
     // required for downcasting in tests
     fn as_any(&self) -> &dyn Any;

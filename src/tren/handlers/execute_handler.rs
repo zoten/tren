@@ -43,7 +43,10 @@ impl TransactionHandler for ExecuteHandler {
             Ok(outcome) => {
                 // let's forgive this small clone for now
                 let mut new_transaction = transaction.clone();
+                // maybe update a skipped transactopm
                 self.update_transaction(&mut new_transaction, &outcome);
+                println!("{:?}", new_transaction);
+
                 // Add transaction to account's log
                 context
                     .accounts_store
@@ -72,7 +75,7 @@ impl ExecuteHandler {
         match outcome {
             RunnerOutcome::Skipped => transaction.skipped(),
             RunnerOutcome::Success => transaction.executed(),
-        }
+        };
     }
 
     fn handle_deposit(
@@ -106,17 +109,9 @@ impl ExecuteHandler {
         context: &mut RunnerContext,
     ) -> Result<RunnerOutcome, RunnerError> {
         // Get the transaction
-        let transactions = match context
+        if let Some(original_transaction) = context
             .accounts_store
-            .get_transactions_mut(transaction.client_id)
-        {
-            None => return Ok(RunnerOutcome::Skipped),
-            Some(transactions) => transactions,
-        };
-
-        if let Some(original_transaction) = transactions
-            .iter_mut()
-            .find(|t| t.transaction_id == transaction.transaction_id)
+            .find_non_disputing_transaction_mut(transaction.client_id, transaction.transaction_id)
         {
             match original_transaction {
                 Transaction {
@@ -155,17 +150,9 @@ impl ExecuteHandler {
         context: &mut RunnerContext,
     ) -> Result<RunnerOutcome, RunnerError> {
         // Get the transaction
-        let transactions = match context
+        if let Some(original_transaction) = context
             .accounts_store
-            .get_transactions_mut(transaction.client_id)
-        {
-            None => return Ok(RunnerOutcome::Skipped),
-            Some(transactions) => transactions,
-        };
-
-        if let Some(original_transaction) = transactions
-            .iter_mut()
-            .find(|t| t.transaction_id == transaction.transaction_id)
+            .find_non_disputing_transaction_mut(transaction.client_id, transaction.transaction_id)
         {
             match original_transaction {
                 Transaction {
@@ -205,17 +192,9 @@ impl ExecuteHandler {
         context: &mut RunnerContext,
     ) -> Result<RunnerOutcome, RunnerError> {
         // Get the transaction
-        let transactions = match context
+        if let Some(original_transaction) = context
             .accounts_store
-            .get_transactions_mut(transaction.client_id)
-        {
-            None => return Ok(RunnerOutcome::Skipped),
-            Some(transactions) => transactions,
-        };
-
-        if let Some(original_transaction) = transactions
-            .iter_mut()
-            .find(|t| t.transaction_id == transaction.transaction_id)
+            .find_non_disputing_transaction_mut(transaction.client_id, transaction.transaction_id)
         {
             match original_transaction {
                 Transaction {

@@ -163,7 +163,7 @@ mod test {
         let result = runner
             .run_from_path(&test_csv_path)
             .await
-            .expect("Expected an Ok value");
+            .expect("Expected an Ok value from runner");
 
         assert!(
             result
@@ -192,7 +192,7 @@ mod test {
         let result = runner
             .run_from_path(&test_csv_path)
             .await
-            .expect("Expected an Ok value");
+            .expect("Expected an Ok value from runner");
 
         let account = result
             .accounts_store
@@ -206,7 +206,7 @@ mod test {
         // let's also test a transaction has been set back as executed
         let transaction = result
             .accounts_store
-            .find_transaction(client_id, transaction_id)
+            .find_non_disputing_transaction(client_id, transaction_id)
             .expect("Transaction should have been found");
 
         assert_eq!(transaction.status, TransactionStatus::Executed);
@@ -225,7 +225,7 @@ mod test {
         let result = runner
             .run_from_path(&test_csv_path)
             .await
-            .expect("Expected an Ok value");
+            .expect("Expected an Ok value from runner");
 
         let account = result
             .accounts_store
@@ -240,7 +240,7 @@ mod test {
         // let's also test a transaction is set as charged back
         let transaction = result
             .accounts_store
-            .find_transaction(client_id, transaction_id)
+            .find_non_disputing_transaction(client_id, transaction_id)
             .expect("Transaction should have been found");
 
         assert_eq!(transaction.status, TransactionStatus::ChargedBack);
@@ -254,7 +254,7 @@ mod test {
         let result = runner
             .run_from_path(&test_csv_path)
             .await
-            .expect("Expected an Ok value");
+            .expect("Expected an Ok value from runner");
 
         let account = result
             .accounts_store
@@ -275,7 +275,7 @@ mod test {
         let result = runner
             .run_from_path(&test_csv_path)
             .await
-            .expect("Expected an Ok value");
+            .expect("Expected an Ok value from runner");
 
         let account = result
             .accounts_store
@@ -298,11 +298,11 @@ mod test {
         let result = runner
             .run_from_path(&test_csv_path)
             .await
-            .expect("Expected an Ok value");
+            .expect("Expected an Ok value from runner");
 
         let withdrawal_operation = result
             .accounts_store
-            .find_transaction(client_id, disputed_skipped_transaction_id)
+            .find_non_disputing_transaction(client_id, disputed_skipped_transaction_id)
             .expect("Transaction should have been found");
 
         // 2 + 1 + 2 - (cannot withdraw 500, let's skip) -3
@@ -323,6 +323,68 @@ mod test {
 
         let mut runner = get_executor_runner();
         assert!(runner.run_from_path(&test_csv_path).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn multiple_clients_test() {
+        // this test is just for chaos, honestly those behavious should already
+        // have been tested before
+        // the file has ordered clients IDs, but only for my mental safety since in this implementation
+        // all client are indipendent
+        let test_csv_path = "src/tests/multiple_clients.csv";
+        // client ids
+        let ci1 = 10;
+        let ci2 = 20;
+        let ci3 = 30;
+
+        let mut runner = get_executor_runner();
+        let result = runner
+            .run_from_path(&test_csv_path)
+            .await
+            .expect("Expected an Ok value from runner");
+
+        // Global asserts
+        assert_eq!(result.accounts_store.count_accounts(), 3);
+
+        // ac1: some deposits/withdrawals, a chargeback and a frozen deposit
+        let ac1 = result
+            .accounts_store
+            .get(ci1)
+            .expect("Expected success")
+            .expect("Expected account");
+        println!("{:?}", ac1);
+        assert!(ac1.frozen());
+        assert_eq!(ac1.held_amount, dec!(0));
+        assert_eq!(ac1.amount, dec!(298.1234));
+
+        // ac2: some deposits/withdrawals, concurrent disputes and a final lottery win
+        let ac2 = result
+            .accounts_store
+            .get(ci2)
+            .expect("Expected success")
+            .expect("Expected account");
+        println!("{:?}", ac2);
+        assert!(!ac2.frozen());
+        assert_eq!(ac2.held_amount, dec!(0)); // all disputes have been resolved
+        assert_eq!(ac2.amount, dec!(10199.1235));
+
+        // ac3: a lot of stuff targeting non existent transactions or another client's transactions
+        // but also a real dispute left pending
+        let tid3_disputed = 32; // disputed transaction, left pending
+        let ac3 = result
+            .accounts_store
+            .get(ci3)
+            .expect("Expected success")
+            .expect("Expected account");
+        println!("{:?}", ac3);
+        let t3_disputed = result
+            .accounts_store
+            .find_non_disputing_transaction(ci3, tid3_disputed)
+            .expect("Transaction should have been found");
+        assert_eq!(t3_disputed.status, TransactionStatus::Disputed);
+        assert!(!ac3.frozen());
+        assert_eq!(ac3.held_amount, dec!(1.0));
+        assert_eq!(ac3.amount, dec!(198.1235));
     }
 
     fn get_runner<'a>() -> Runner<'a> {

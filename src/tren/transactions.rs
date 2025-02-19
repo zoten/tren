@@ -78,6 +78,7 @@ impl Transaction {
         }
     }
 
+    /// Only some transactions should have an amount
     pub fn validate(self) -> Result<Self, TransactionError> {
         match self.transaction_type {
             TransactionType::Deposit => self.amount.is_some(),
@@ -89,6 +90,16 @@ impl Transaction {
         .then_some(self)
         .ok_or(
             TransactionError::InvalidTransaction(String::from("Amount is not correct for this transaction (only Deposit and Withrawal can have amounts)")))
+    }
+
+    /// Checks wether a transaction has a tx or refers to a tx, for searching purposes
+    pub fn is_disputing(&self) -> bool {
+        match self.transaction_type {
+            TransactionType::Chargeback | TransactionType::Dispute | TransactionType::Resolve => {
+                true
+            }
+            TransactionType::Deposit | TransactionType::Withdrawal => false,
+        }
     }
 
     pub fn dispute(&mut self) {
@@ -109,5 +120,32 @@ impl Transaction {
 
     pub fn executed(&mut self) {
         self.status = TransactionStatus::Executed;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use rust_decimal_macros::dec;
+
+    #[test]
+    fn test_status_changes() {
+        let mut transaction =
+            Transaction::new(TransactionType::Withdrawal, 10, 32, Some(dec!(100.0)));
+
+        transaction.dispute();
+        assert_eq!(transaction.status, TransactionStatus::Disputed);
+
+        transaction.resolve();
+        assert_eq!(transaction.status, TransactionStatus::Executed);
+
+        transaction.chargeback();
+        assert_eq!(transaction.status, TransactionStatus::ChargedBack);
+
+        transaction.skipped();
+        assert_eq!(transaction.status, TransactionStatus::Skipped);
+
+        transaction.executed();
+        assert_eq!(transaction.status, TransactionStatus::Executed);
     }
 }
