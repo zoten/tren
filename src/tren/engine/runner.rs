@@ -1,14 +1,12 @@
 use crate::tren::handlers::transaction_handler::TransactionHandler;
+use crate::tren::inputs::csv_streamer::CsvConfig;
+use crate::tren::inputs::csv_streamer::CsvStreamer;
+use crate::tren::inputs::csv_streamer::CsvStreamerError;
+use crate::tren::inputs::transactions_provider::TransactionsProvider;
 use crate::tren::storage::store::AccountsStorage;
 // transaction engine runner`
-use crate::tren::transactions::Transaction;
-use csv_async::AsyncReaderBuilder;
-use csv_async::Trim;
 use futures_util::StreamExt; // needed for .next()
 use thiserror::Error;
-use tokio::fs::File;
-use tokio::io::BufReader;
-use tokio_util::compat::TokioAsyncReadCompatExt;
 
 use super::context::RunnerContext;
 
@@ -55,24 +53,18 @@ impl<'a> Runner<'a> {
 
     /// Create a runner instance from a file path
     pub async fn run_from_path(&mut self, path: &str) -> Result<RunnerContext, RunnerError> {
-        let file = File::open(path)
+        // Hardcode the CSV streamer for now
+        let csv_stream_config = CsvConfig {
+            path: String::from(path),
+        };
+        let mut csv_stream = CsvStreamer::stream_transactions(csv_stream_config)
             .await
-            .map_err(|_| RunnerError::FileDoesNotExists(String::from(path)))?;
-
-        // need to convert from tokio async to csv async, sic. Maybe there's some better way?
-        let buf_reader = BufReader::new(file).compat();
-
-        // Build an asynchronous CSV deserializer
-        let mut csv_reader = AsyncReaderBuilder::new()
-            .has_headers(true)
-            .trim(Trim::All)
-            .create_deserializer(buf_reader)
-            .into_deserialize::<Transaction>();
+            .map_err(Self::handle_csv_error)?;
 
         let mut context = RunnerContext::new(&mut self.accounts_store);
 
         // Stream through each record
-        while let Some(result) = csv_reader.next().await {
+        while let Some(result) = csv_stream.next().await {
             let record = result
                 .map_err(|err| {
                     RunnerError::InvalidRow(format!("Row could not be deserialized [{:?}]", err))
@@ -84,6 +76,14 @@ impl<'a> Runner<'a> {
             self.handler.handle(record, &mut context)?;
         }
         Ok(context)
+    }
+
+    // temporary here because I did not decide about errors yet
+    fn handle_csv_error(error: CsvStreamerError) -> RunnerError {
+        match error {
+            CsvStreamerError::CsvReadError(err) => RunnerError::FileDoesNotExists(err),
+            CsvStreamerError::DeserializeError(err) => RunnerError::InvalidRow(err),
+        }
     }
 }
 
