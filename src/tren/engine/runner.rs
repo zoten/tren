@@ -1,9 +1,13 @@
+use std::fmt::Debug;
+
 use crate::tren::handlers::transaction_handler::TransactionHandler;
 use crate::tren::inputs::csv_streamer::CsvConfig;
 use crate::tren::inputs::csv_streamer::CsvStreamer;
 use crate::tren::inputs::csv_streamer::CsvStreamerError;
 use crate::tren::inputs::transactions_provider::TransactionsProvider;
 use crate::tren::storage::store::AccountsStorage;
+use crate::tren::transactions::Transaction;
+use futures::Stream;
 // transaction engine runner`
 use futures_util::StreamExt; // needed for .next()
 use thiserror::Error;
@@ -19,6 +23,8 @@ pub enum RunnerError {
     InvalidRow(String),
     #[error("Storage encountered an error")]
     StorageError,
+    #[error("Stream failure [{0}]")]
+    StreamFailure(String),
 }
 
 /// successful outcomes for a transaction handling
@@ -52,19 +58,28 @@ impl<'a> Runner<'a> {
     }
 
     /// Create a runner instance from a file path
-    pub async fn run_from_path(&mut self, path: &str) -> Result<RunnerContext, RunnerError> {
-        // Hardcode the CSV streamer for now
+    pub async fn run_from_csv(&mut self, path: &str) -> Result<RunnerContext, RunnerError> {
         let csv_stream_config = CsvConfig {
             path: String::from(path),
         };
-        let mut csv_stream = CsvStreamer::stream_transactions(csv_stream_config)
+        let csv_stream = CsvStreamer::stream_transactions(csv_stream_config)
             .await
             .map_err(Self::handle_csv_error)?;
 
+        self.run_transactions(csv_stream).await
+    }
+
+    pub async fn run_transactions<S, E>(
+        &mut self,
+        mut stream: S,
+    ) -> Result<RunnerContext, RunnerError>
+    where
+        S: Stream<Item = Result<Transaction, E>> + Unpin,
+        E: Debug,
+    {
         let mut context = RunnerContext::new(&mut self.accounts_store);
 
-        // Stream through each record
-        while let Some(result) = csv_stream.next().await {
+        while let Some(result) = stream.next().await {
             let record = result
                 .map_err(|err| {
                     RunnerError::InvalidRow(format!("Row could not be deserialized [{:?}]", err))
@@ -75,6 +90,7 @@ impl<'a> Runner<'a> {
 
             self.handler.handle(record, &mut context)?;
         }
+
         Ok(context)
     }
 
@@ -89,7 +105,7 @@ impl<'a> Runner<'a> {
 
 // I'm using a concrete e2e-like test here just not to use too much time in playing
 // with lifetimes and exotic stream types by splitting the stream producer and the handle loop in
-// run_from_path
+// run_from_csv
 // Also, some tests here are testing more than one thing. Although it is an antipattern, I think for the
 // sake of an exercise this compromise is good enough
 // however, should the csv come from other sources (TCP/gRPC streams etc) this division should be implemented
@@ -113,7 +129,7 @@ mod test {
         let test_csv_path = "src/tests/one_transaction_per_type.csv";
 
         let mut runner = get_runner();
-        let _result = runner.run_from_path(&test_csv_path).await;
+        let _result = runner.run_from_csv(&test_csv_path).await;
 
         let handler_ref = runner.handler();
         // Downcast
@@ -143,7 +159,7 @@ mod test {
         let test_csv_path = "src/tests/base_transactions.csv";
 
         let mut runner = get_runner();
-        let _result = runner.run_from_path(&test_csv_path).await;
+        let _result = runner.run_from_csv(&test_csv_path).await;
 
         let handler_ref = runner.handler();
         // Downcast
@@ -161,7 +177,7 @@ mod test {
 
         let mut runner = get_executor_runner();
         let result = runner
-            .run_from_path(&test_csv_path)
+            .run_from_csv(&test_csv_path)
             .await
             .expect("Expected an Ok value from runner");
 
@@ -190,7 +206,7 @@ mod test {
 
         let mut runner = get_executor_runner();
         let result = runner
-            .run_from_path(&test_csv_path)
+            .run_from_csv(&test_csv_path)
             .await
             .expect("Expected an Ok value from runner");
 
@@ -223,7 +239,7 @@ mod test {
 
         let mut runner = get_executor_runner();
         let result = runner
-            .run_from_path(&test_csv_path)
+            .run_from_csv(&test_csv_path)
             .await
             .expect("Expected an Ok value from runner");
 
@@ -252,7 +268,7 @@ mod test {
 
         let mut runner = get_executor_runner();
         let result = runner
-            .run_from_path(&test_csv_path)
+            .run_from_csv(&test_csv_path)
             .await
             .expect("Expected an Ok value from runner");
 
@@ -273,7 +289,7 @@ mod test {
 
         let mut runner = get_executor_runner();
         let result = runner
-            .run_from_path(&test_csv_path)
+            .run_from_csv(&test_csv_path)
             .await
             .expect("Expected an Ok value from runner");
 
@@ -296,7 +312,7 @@ mod test {
 
         let mut runner = get_executor_runner();
         let result = runner
-            .run_from_path(&test_csv_path)
+            .run_from_csv(&test_csv_path)
             .await
             .expect("Expected an Ok value from runner");
 
@@ -314,7 +330,7 @@ mod test {
         let test_csv_path = "src/tests/malformed.csv";
 
         let mut runner = get_executor_runner();
-        assert!(runner.run_from_path(&test_csv_path).await.is_err());
+        assert!(runner.run_from_csv(&test_csv_path).await.is_err());
     }
 
     #[tokio::test]
@@ -322,7 +338,7 @@ mod test {
         let test_csv_path = "src/tests/does_not_exist.csv";
 
         let mut runner = get_executor_runner();
-        assert!(runner.run_from_path(&test_csv_path).await.is_err());
+        assert!(runner.run_from_csv(&test_csv_path).await.is_err());
     }
 
     #[tokio::test]
@@ -339,7 +355,7 @@ mod test {
 
         let mut runner = get_executor_runner();
         let result = runner
-            .run_from_path(&test_csv_path)
+            .run_from_csv(&test_csv_path)
             .await
             .expect("Expected an Ok value from runner");
 

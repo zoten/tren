@@ -12,7 +12,7 @@ pub trait TransactionsProvider {
     /// allow for generic configuration
     type Config;
 
-    type Error;
+    type Error: std::fmt::Debug;
 
     type TransactionStream: Stream<Item = Result<Transaction, Self::Error>> + Send + Unpin + 'static;
 
