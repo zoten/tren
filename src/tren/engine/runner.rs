@@ -14,6 +14,9 @@ use thiserror::Error;
 
 use super::context::RunnerContext;
 
+// TODO make this the "generic runner errors" and transalte handler errors into this type,
+// or make the error generic and return directly a generic thiserror::Error without this
+// indirection step
 #[derive(Error, Debug)]
 pub enum RunnerError {
     /// a given path is not a file
