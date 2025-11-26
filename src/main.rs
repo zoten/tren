@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let storage = Box::new(InMemoryAccountsStorage::default());
 
     let mut runner = Runner::new(handler, storage);
-    let result = runner.run_from_path(filename).await?;
+    let result = runner.run_from_csv(filename).await?;
 
     CsvPrinter::default().print(result.accounts_store.all_accounts_iter());
 
