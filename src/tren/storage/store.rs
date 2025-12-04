@@ -28,12 +28,24 @@ pub trait AccountsStorage {
     // not proud of this signature, but at this point to make it object-safe that's the fastest way
     fn all_accounts_iter(&self) -> Box<dyn Iterator<Item = &Account> + '_>;
 
-    // Returns a mutable reference to the account with given `client_id`
+    /// Returns a mutable reference to the account with given `client_id`
     /// If account doesn't exist, it is created with `client_id` and default values
+    /// 
+    /// # Errors
+    /// 
+    /// Returns a `StoreError` if the storage fails to read or write the account.
     fn get_or_create(&mut self, client_id: ClientId) -> Result<&mut Account, StoreError>;
     /// Gets an immutable reference to an account, for introspection
+    /// 
+    /// # Errors
+    /// 
+    /// Returns a `StoreError` if the storage fails to read the account.
     fn get(&self, client_id: ClientId) -> Result<Option<&Account>, StoreError>;
     /// Inserts or updates an account in the store.
+    /// 
+    /// # Errors
+    /// 
+    /// Returns a `StoreError` if the storage fails to write the account.
     fn put(&mut self, account: Account) -> Result<(), StoreError>;
     /// Returns a vector containing references to all stored accounts.
     fn list(&self) -> Vec<&Account>;

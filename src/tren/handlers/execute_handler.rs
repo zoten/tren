@@ -30,12 +30,12 @@ impl TransactionHandler for ExecuteHandler {
         }
 
         let result = match transaction.transaction_type {
-            TransactionType::Deposit => self.handle_deposit(&mut account, &transaction),
-            TransactionType::Withdrawal => self.handle_withdrawal(&mut account, &transaction),
-            TransactionType::Dispute => self.handle_dispute(&mut account, &transaction, context),
-            TransactionType::Resolve => self.handle_resolve(&mut account, &transaction, context),
+            TransactionType::Deposit => ExecuteHandler::handle_deposit(&mut account, &transaction),
+            TransactionType::Withdrawal => ExecuteHandler::handle_withdrawal(&mut account, &transaction),
+            TransactionType::Dispute => ExecuteHandler::handle_dispute(&mut account, &transaction, context),
+            TransactionType::Resolve => ExecuteHandler::handle_resolve(&mut account, &transaction, context),
             TransactionType::Chargeback => {
-                self.handle_chargeback(&mut account, &transaction, context)
+                ExecuteHandler::handle_chargeback(&mut account, &transaction, context)
             }
         };
 
@@ -44,7 +44,7 @@ impl TransactionHandler for ExecuteHandler {
                 // let's forgive this small clone for now
                 let mut new_transaction = transaction.clone();
                 // maybe update a skipped transactopm
-                self.update_transaction(&mut new_transaction, &outcome);
+                ExecuteHandler::update_transaction(&mut new_transaction, &outcome);
 
                 // Add transaction to account's log
                 context
@@ -70,15 +70,14 @@ impl TransactionHandler for ExecuteHandler {
 }
 
 impl ExecuteHandler {
-    fn update_transaction(&self, transaction: &mut Transaction, outcome: &RunnerOutcome) {
+    fn update_transaction(transaction: &mut Transaction, outcome: &RunnerOutcome) {
         match outcome {
             RunnerOutcome::Skipped => transaction.skipped(),
             RunnerOutcome::Success => transaction.executed(),
-        };
+        }
     }
 
     fn handle_deposit(
-        &mut self,
         account: &mut Account,
         transaction: &Transaction,
     ) -> Result<RunnerOutcome, RunnerError> {
@@ -87,7 +86,6 @@ impl ExecuteHandler {
     }
 
     fn handle_withdrawal(
-        &mut self,
         account: &mut Account,
         transaction: &Transaction,
     ) -> Result<RunnerOutcome, RunnerError> {
@@ -102,7 +100,6 @@ impl ExecuteHandler {
     /// a previous transaction is being disputed. Funds will be held
     /// only executed transactions may be disputed
     fn handle_dispute(
-        &mut self,
         account: &mut Account,
         transaction: &Transaction,
         context: &mut RunnerContext,
@@ -143,7 +140,6 @@ impl ExecuteHandler {
 
     /// a previous transaction has been resolved. Funds will be freed
     fn handle_resolve(
-        &mut self,
         account: &mut Account,
         transaction: &Transaction,
         context: &mut RunnerContext,
@@ -185,7 +181,6 @@ impl ExecuteHandler {
     /// a previous transaction has been charged back. Held funds will be definitely lost
     /// and the account will be frozen
     fn handle_chargeback(
-        &mut self,
         account: &mut Account,
         transaction: &Transaction,
         context: &mut RunnerContext,

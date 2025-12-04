@@ -44,6 +44,8 @@ pub struct Runner<'a> {
 }
 
 impl<'a> Runner<'a> {
+    /// Create a new rimmer instance
+    #[must_use]
     pub fn new(
         handler: Box<dyn TransactionHandler + 'a>,
         accounts_storage: Box<dyn AccountsStorage>,
@@ -61,7 +63,11 @@ impl<'a> Runner<'a> {
     }
 
     /// Create a runner instance from a file path
-    pub async fn run_from_csv(&mut self, path: &str) -> Result<RunnerContext, RunnerError> {
+    /// 
+    /// # Errors
+    /// 
+    /// Returns error for errors opening the CSV
+    pub async fn run_from_csv(&mut self, path: &str) -> Result<RunnerContext<'_>, RunnerError> {
         let csv_stream_config = CsvConfig {
             path: String::from(path),
         };
@@ -72,10 +78,15 @@ impl<'a> Runner<'a> {
         self.run_transactions(csv_stream).await
     }
 
+    /// Iterate through the list of transactions and handle them
+    /// 
+    /// # Errors
+    /// 
+    /// See `RunnerError` for the possible errors returned and their meaning
     pub async fn run_transactions<S, E>(
         &mut self,
         mut stream: S,
-    ) -> Result<RunnerContext, RunnerError>
+    ) -> Result<RunnerContext<'_>, RunnerError>
     where
         S: Stream<Item = Result<Transaction, E>> + Unpin,
         E: Debug,
@@ -85,10 +96,10 @@ impl<'a> Runner<'a> {
         while let Some(result) = stream.next().await {
             let record = result
                 .map_err(|err| {
-                    RunnerError::InvalidRow(format!("Row could not be deserialized [{:?}]", err))
+                    RunnerError::InvalidRow(format!("Row could not be deserialized [{err:?}]"))
                 })?
                 .validate()
-                .map_err(|err| RunnerError::InvalidRow(format!("Invalid row [{:?}]", err)))?;
+                .map_err(|err| RunnerError::InvalidRow(format!("Invalid row [{err:?}]")))?;
             //print!("{:?}", record);
 
             self.handler.handle(record, &mut context)?;

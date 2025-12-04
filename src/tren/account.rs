@@ -30,6 +30,7 @@ pub struct Account {
 }
 
 impl Account {
+    #[must_use]
     pub fn new(client_id: ClientId) -> Self {
         Account {
             client_id,
@@ -45,6 +46,10 @@ impl Account {
     }
 
     /// Withdraw funds
+    /// 
+    /// # Errors
+    /// 
+    /// Return error if amount to withdraw is incompatible with current balance
     pub fn withdraw(&mut self, amount: Amount) -> Result<(), AccountOperationError> {
         if self.amount < amount {
             return Err(AccountOperationError::NotEnoughFunds);
@@ -54,6 +59,7 @@ impl Account {
     }
 
     /// Total of available amount plus the amount on hold for disputes
+    #[must_use]
     pub fn total(&self) -> Decimal {
         self.held_amount + self.amount
     }
@@ -88,6 +94,7 @@ impl Account {
     }
 
     /// is the account frozen?
+    #[must_use]
     pub fn frozen(&self) -> bool {
         self.status == AccountStatus::Frozen
     }

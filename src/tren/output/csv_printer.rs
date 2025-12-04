@@ -5,18 +5,18 @@ pub struct CsvPrinter {}
 
 impl<'a> CsvPrinter {
     pub fn print(&self, accounts_iter: impl Iterator<Item = &'a Account>) {
-        println!("{}", self.csv_header());
+        println!("{}", CsvPrinter::csv_header());
 
         for account in accounts_iter {
-            println!("{}", self.account_csv(account))
+            println!("{}", CsvPrinter::account_csv(account));
         }
     }
 
-    fn csv_header(&self) -> String {
+    fn csv_header() -> String {
         String::from("client, available, held, total, locked")
     }
 
-    fn account_csv(&self, account: &Account) -> String {
+    fn account_csv(account: &Account) -> String {
         format!(
             "{client_id}, {available:.4}, {held:.4}, {total:.4}, {locked}",
             client_id = account.client_id,

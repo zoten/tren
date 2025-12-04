@@ -11,6 +11,11 @@ use crate::tren::{
 };
 
 pub trait TransactionHandler {
+    /// Handle the transaction
+    /// 
+    /// # Errors
+    /// 
+    /// Returns a `RunnerError` if the transaction is not valid or if the storage fails to handle the transaction
     fn handle(
         &mut self,
         transaction: Transaction,

@@ -63,6 +63,7 @@ pub struct Transaction {
 
 impl Transaction {
     /// Get a full specified transaction type
+    #[must_use]
     pub fn new(
         transaction_type: TransactionType,
         client_id: ClientId,
@@ -79,19 +80,21 @@ impl Transaction {
     }
 
     /// Only some transactions should have an amount
+    /// 
+    /// # Errors
+    /// 
+    /// Returns an error if the amount is not correct for this transaction (only Deposit and Withrawal can have amounts)
     pub fn validate(self) -> Result<Self, TransactionError> {
         match self.transaction_type {
-            TransactionType::Deposit => self.amount.is_some(),
-            TransactionType::Withdrawal => self.amount.is_some(),
-            TransactionType::Chargeback => self.amount.is_none(),
-            TransactionType::Dispute => self.amount.is_none(),
-            TransactionType::Resolve => self.amount.is_none(),
+            TransactionType::Deposit | TransactionType::Withdrawal => self.amount.is_some(),
+            TransactionType::Chargeback | TransactionType::Dispute | TransactionType::Resolve => self.amount.is_none(),
         }
         .then_some(self)
         .ok_or(
             TransactionError::InvalidTransaction(String::from("Amount is not correct for this transaction (only Deposit and Withrawal can have amounts)")))
     }
 
+    #[must_use]
     /// Checks wether a transaction has a tx or refers to a tx, for searching purposes
     pub fn is_disputing(&self) -> bool {
         match self.transaction_type {

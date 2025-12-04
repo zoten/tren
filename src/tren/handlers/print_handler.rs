@@ -17,7 +17,7 @@ impl TransactionHandler for PrintHandler {
         transaction: Transaction,
         _context: &mut RunnerContext,
     ) -> Result<RunnerOutcome, RunnerError> {
-        println!("{:?}", transaction);
+        println!("{transaction:?}");
         Ok(RunnerOutcome::Success)
     }
 
