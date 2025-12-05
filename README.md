@@ -28,6 +28,12 @@ cargo run -- src/tests/base_transactions.csv
 cargo test
 ```
 
+## lint
+
+``` bash
+cargo clippy -- -W clippy::pedantic
+```
+
 ## Assumptions
 
  * The csv is correct, meaning e.g. that dispute rows have an empty amount
