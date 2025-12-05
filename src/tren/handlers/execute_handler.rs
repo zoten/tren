@@ -34,7 +34,9 @@ impl TransactionHandler for ExecuteHandler {
             TransactionType::Withdrawal => Self::handle_withdrawal(&mut account, &transaction),
             TransactionType::Dispute => Self::handle_dispute(&mut account, &transaction, context),
             TransactionType::Resolve => Self::handle_resolve(&mut account, &transaction, context),
-            TransactionType::Chargeback => Self::handle_chargeback(&mut account, &transaction, context)
+            TransactionType::Chargeback => {
+                Self::handle_chargeback(&mut account, &transaction, context)
+            }
         };
 
         // let's forgive this small clone for now
@@ -54,7 +56,6 @@ impl TransactionHandler for ExecuteHandler {
             .map_err(|_| RunnerError::StorageError)?;
 
         Ok(result)
-
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -70,18 +71,12 @@ impl ExecuteHandler {
         }
     }
 
-    fn handle_deposit(
-        account: &mut Account,
-        transaction: &Transaction,
-    ) -> RunnerOutcome {
+    fn handle_deposit(account: &mut Account, transaction: &Transaction) -> RunnerOutcome {
         account.deposit(transaction.amount.expect("Invalid transaction found"));
         RunnerOutcome::Success
     }
 
-    fn handle_withdrawal(
-        account: &mut Account,
-        transaction: &Transaction,
-    ) -> RunnerOutcome {
+    fn handle_withdrawal(account: &mut Account, transaction: &Transaction) -> RunnerOutcome {
         let amount_to_withdraw = transaction.amount.expect("Invalid transaction found");
 
         match account.withdraw(amount_to_withdraw) {

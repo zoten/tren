@@ -46,9 +46,9 @@ impl Account {
     }
 
     /// Withdraw funds
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Return error if amount to withdraw is incompatible with current balance
     pub fn withdraw(&mut self, amount: Amount) -> Result<(), AccountOperationError> {
         if self.amount < amount {

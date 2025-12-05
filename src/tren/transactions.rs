@@ -80,9 +80,9 @@ impl Transaction {
     }
 
     /// Only some transactions should have an amount
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if the amount is not correct for this transaction (only Deposit and Withrawal can have amounts)
     pub fn validate(self) -> Result<Self, TransactionError> {
         match self.transaction_type {

@@ -63,9 +63,9 @@ impl<'a> Runner<'a> {
     }
 
     /// Create a runner instance from a file path
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns error for errors opening the CSV
     pub async fn run_from_csv(&mut self, path: &str) -> Result<RunnerContext<'_>, RunnerError> {
         let csv_stream_config = CsvConfig {
@@ -79,9 +79,9 @@ impl<'a> Runner<'a> {
     }
 
     /// Iterate through the list of transactions and handle them
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// See `RunnerError` for the possible errors returned and their meaning
     pub async fn run_transactions<S, E>(
         &mut self,
