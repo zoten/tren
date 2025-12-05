@@ -31,7 +31,23 @@ cargo test
 ## lint
 
 ``` bash
-cargo clippy -- -W clippy::pedantic
+cargo clippy -- -W clippy::pedantic -D warnings
+```
+
+## CI
+
+Project will be tested on push through GitHub Actions. You can pre-test your changes using
+
+``` bash
+cargo fmt --all -- --check
+cargo clippy -- -W clippy::pedantic -D warnings
+cargo test
+```
+
+or, with some more setup using [GitHub CLI](https://github.com/cli/cli/tree/trunk) and [act](https://nektosact.com/introduction.html) (or standalone `act` if available for your system)
+
+``` bash
+gh act
 ```
 
 ## Assumptions
