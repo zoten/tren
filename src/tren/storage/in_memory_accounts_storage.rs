@@ -2,7 +2,7 @@
 // if memory management becomes a problem (e.g. large datasets)
 // this could be substituted with sqlite ecc
 
-use std::{any::Any, collections::HashMap};
+use std::collections::HashMap;
 
 use crate::tren::{
     account::Account,
@@ -89,10 +89,6 @@ impl AccountsStorage for InMemoryAccountsStorage {
             .get_mut(&client_id)?
             .iter_mut()
             .find(|t| (t.transaction_id == transaction_id) && (!t.is_disputing()))
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 

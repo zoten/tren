@@ -7,27 +7,23 @@ use crate::tren::engine::runner::RunnerOutcome;
 #[cfg(test)]
 use crate::tren::handlers::transaction_handler::TransactionHandler;
 #[cfg(test)]
+use crate::tren::storage::store::AccountsStorage;
+#[cfg(test)]
 use crate::tren::transactions::Transaction;
 #[cfg(test)]
-use std::any::Any;
-
 #[cfg(test)]
 pub struct CollectHandler {
     pub transactions: Vec<Transaction>,
 }
 
 #[cfg(test)]
-impl TransactionHandler for CollectHandler {
+impl<S: AccountsStorage> TransactionHandler<S> for CollectHandler {
     fn handle(
         &mut self,
         transaction: Transaction,
-        _context: &mut RunnerContext,
+        _context: &mut RunnerContext<'_, S>,
     ) -> Result<RunnerOutcome, RunnerError> {
         self.transactions.push(transaction.clone());
         Ok(RunnerOutcome::Success)
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }

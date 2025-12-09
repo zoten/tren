@@ -37,19 +37,24 @@ pub enum RunnerOutcome {
     Skipped,
 }
 
-pub struct Runner<'a> {
+pub struct Runner<H, S>
+where
+    H: TransactionHandler<S>,
+    S: AccountsStorage,
+{
     // handler must live at least as long as Runner
-    handler: Box<dyn TransactionHandler + 'a>,
-    accounts_store: Box<dyn AccountsStorage>,
+    handler: H,
+    accounts_store: S,
 }
 
-impl<'a> Runner<'a> {
+impl<H, S> Runner<H, S>
+where
+    H: TransactionHandler<S>,
+    S: AccountsStorage,
+{
     /// Create a new rimmer instance
     #[must_use]
-    pub fn new(
-        handler: Box<dyn TransactionHandler + 'a>,
-        accounts_storage: Box<dyn AccountsStorage>,
-    ) -> Self {
+    pub fn new(handler: H, accounts_storage: S) -> Self {
         Runner {
             handler,
             accounts_store: accounts_storage,
@@ -58,8 +63,8 @@ impl<'a> Runner<'a> {
 
     /// Extract a reference to the underlying handler for inspection. Needed for test only
     #[cfg(test)]
-    pub fn handler(&self) -> &dyn TransactionHandler {
-        &*self.handler
+    pub fn handler(&self) -> &H {
+        &self.handler
     }
 
     /// Create a runner instance from a file path
@@ -67,7 +72,7 @@ impl<'a> Runner<'a> {
     /// # Errors
     ///
     /// Returns error for errors opening the CSV
-    pub async fn run_from_csv(&mut self, path: &str) -> Result<RunnerContext<'_>, RunnerError> {
+    pub async fn run_from_csv(&mut self, path: &str) -> Result<RunnerContext<'_, S>, RunnerError> {
         let csv_stream_config = CsvConfig {
             path: String::from(path),
         };
@@ -83,12 +88,12 @@ impl<'a> Runner<'a> {
     /// # Errors
     ///
     /// See `RunnerError` for the possible errors returned and their meaning
-    pub async fn run_transactions<S, E>(
+    pub async fn run_transactions<T, E>(
         &mut self,
-        mut stream: S,
-    ) -> Result<RunnerContext<'_>, RunnerError>
+        mut stream: T,
+    ) -> Result<RunnerContext<'_, S>, RunnerError>
     where
-        S: Stream<Item = Result<Transaction, E>> + Unpin,
+        T: Stream<Item = Result<Transaction, E>> + Unpin,
         E: Debug,
     {
         let mut context = RunnerContext::new(&mut self.accounts_store);
@@ -145,12 +150,7 @@ mod test {
         let mut runner = get_runner();
         let _result = runner.run_from_csv(&test_csv_path).await;
 
-        let handler_ref = runner.handler();
-        // Downcast
-        let collect_handler = handler_ref
-            .as_any()
-            .downcast_ref::<CollectHandler>()
-            .expect("Handler is not a CollectHandler");
+        let collect_handler = runner.handler();
 
         assert!(collect_handler.transactions.len() == 8);
         assert_eq!(
@@ -175,12 +175,7 @@ mod test {
         let mut runner = get_runner();
         let _result = runner.run_from_csv(&test_csv_path).await;
 
-        let handler_ref = runner.handler();
-        // Downcast
-        let collect_handler = handler_ref
-            .as_any()
-            .downcast_ref::<CollectHandler>()
-            .expect("Handler is not a CollectHandler");
+        let collect_handler = runner.handler();
 
         assert!(collect_handler.transactions.len() == 5);
     }
@@ -414,25 +409,20 @@ mod test {
         assert_eq!(ac3.amount, dec!(198.1235));
     }
 
-    fn get_runner<'a>() -> Runner<'a> {
-        let collect_handler = CollectHandler {
+    fn get_runner() -> Runner<CollectHandler, InMemoryAccountsStorage> {
+        let handler = CollectHandler {
             transactions: vec![],
         };
-        let handler = Box::new(collect_handler);
 
-        let in_memory_accounts_storage = InMemoryAccountsStorage::default();
-        let accounts_storage = Box::new(in_memory_accounts_storage);
+        let storage = InMemoryAccountsStorage::default();
 
-        Runner::new(handler, accounts_storage)
+        Runner::new(handler, storage)
     }
 
-    fn get_executor_runner<'a>() -> Runner<'a> {
-        let execute_handler = ExecuteHandler {};
-        let handler = Box::new(execute_handler);
+    fn get_executor_runner() -> Runner<ExecuteHandler, InMemoryAccountsStorage> {
+        let handler = ExecuteHandler {};
+        let storage = InMemoryAccountsStorage::default();
 
-        let in_memory_accounts_storage = InMemoryAccountsStorage::default();
-        let accounts_storage = Box::new(in_memory_accounts_storage);
-
-        Runner::new(handler, accounts_storage)
+        Runner::new(handler, storage)
     }
 }

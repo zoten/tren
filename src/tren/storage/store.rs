@@ -3,8 +3,6 @@
 // avoiding transactional concepts for now, let's suppose locks happen
 // at business logic level
 
-use std::any::Any;
-
 use crate::tren::{
     account::Account,
     client::ClientId,
@@ -65,7 +63,4 @@ pub trait AccountsStorage {
         client_id: ClientId,
         transaction_id: TransactionId,
     ) -> Option<&mut Transaction>;
-
-    // required for downcasting in tests
-    fn as_any(&self) -> &dyn Any;
 }

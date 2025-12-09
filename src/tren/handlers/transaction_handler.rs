@@ -1,16 +1,15 @@
 // trait to define handlers for the engine
 
-use std::any::Any;
-
 use crate::tren::{
     engine::{
         context::RunnerContext,
         runner::{RunnerError, RunnerOutcome},
     },
+    storage::store::AccountsStorage,
     transactions::Transaction,
 };
 
-pub trait TransactionHandler {
+pub trait TransactionHandler<S: AccountsStorage> {
     /// Handle the transaction
     ///
     /// # Errors
@@ -19,8 +18,6 @@ pub trait TransactionHandler {
     fn handle(
         &mut self,
         transaction: Transaction,
-        context: &mut RunnerContext,
+        context: &mut RunnerContext<'_, S>,
     ) -> Result<RunnerOutcome, RunnerError>;
-    // required for downcasting in tests
-    fn as_any(&self) -> &dyn Any;
 }

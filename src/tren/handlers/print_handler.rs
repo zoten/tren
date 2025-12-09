@@ -1,27 +1,22 @@
+use super::transaction_handler::TransactionHandler;
 use crate::tren::{
     engine::{
         context::RunnerContext,
         runner::{RunnerError, RunnerOutcome},
     },
+    storage::store::AccountsStorage,
     transactions::Transaction,
 };
-use std::any::Any;
-
-use super::transaction_handler::TransactionHandler;
 
 pub struct PrintHandler {}
 
-impl TransactionHandler for PrintHandler {
+impl<S: AccountsStorage> TransactionHandler<S> for PrintHandler {
     fn handle(
         &mut self,
         transaction: Transaction,
-        _context: &mut RunnerContext,
+        _context: &mut RunnerContext<'_, S>,
     ) -> Result<RunnerOutcome, RunnerError> {
         println!("{transaction:?}");
         Ok(RunnerOutcome::Success)
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }

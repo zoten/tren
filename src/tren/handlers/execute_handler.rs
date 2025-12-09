@@ -3,17 +3,16 @@ use crate::tren::engine::context::RunnerContext;
 // This is the "real" default executor for production environment
 use crate::tren::engine::runner::{RunnerError, RunnerOutcome};
 use crate::tren::handlers::transaction_handler::TransactionHandler;
+use crate::tren::storage::store::AccountsStorage;
 use crate::tren::transactions::{Transaction, TransactionStatus, TransactionType};
-
-use std::any::Any;
 
 pub struct ExecuteHandler {}
 
-impl TransactionHandler for ExecuteHandler {
+impl<S: AccountsStorage> TransactionHandler<S> for ExecuteHandler {
     fn handle(
         &mut self,
         transaction: Transaction,
-        context: &mut RunnerContext,
+        context: &mut RunnerContext<'_, S>,
     ) -> Result<RunnerOutcome, RunnerError> {
         let mut account = context
             .accounts_store
@@ -57,10 +56,6 @@ impl TransactionHandler for ExecuteHandler {
 
         Ok(result)
     }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
 }
 
 impl ExecuteHandler {
@@ -87,10 +82,10 @@ impl ExecuteHandler {
 
     /// a previous transaction is being disputed. Funds will be held
     /// only executed transactions may be disputed
-    fn handle_dispute(
+    fn handle_dispute<S: AccountsStorage>(
         account: &mut Account,
         transaction: &Transaction,
-        context: &mut RunnerContext,
+        context: &mut RunnerContext<'_, S>,
     ) -> RunnerOutcome {
         // Get the transaction
         if let Some(original_transaction) = context
@@ -127,10 +122,10 @@ impl ExecuteHandler {
     }
 
     /// a previous transaction has been resolved. Funds will be freed
-    fn handle_resolve(
+    fn handle_resolve<S: AccountsStorage>(
         account: &mut Account,
         transaction: &Transaction,
-        context: &mut RunnerContext,
+        context: &mut RunnerContext<'_, S>,
     ) -> RunnerOutcome {
         // Get the transaction
         if let Some(original_transaction) = context
@@ -168,10 +163,10 @@ impl ExecuteHandler {
 
     /// a previous transaction has been charged back. Held funds will be definitely lost
     /// and the account will be frozen
-    fn handle_chargeback(
+    fn handle_chargeback<S: AccountsStorage>(
         account: &mut Account,
         transaction: &Transaction,
-        context: &mut RunnerContext,
+        context: &mut RunnerContext<'_, S>,
     ) -> RunnerOutcome {
         // Get the transaction
         if let Some(original_transaction) = context
