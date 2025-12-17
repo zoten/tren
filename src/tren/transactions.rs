@@ -91,7 +91,7 @@ impl Transaction {
         }
         .then_some(self)
         .ok_or(
-            TransactionError::InvalidTransaction(String::from("Amount is not correct for this transaction (only Deposit and Withrawal can have amounts)")))
+            TransactionError::InvalidTransaction(String::from("Amount is not correct for this transaction (only Deposit and Withdrawal can have amounts)")))
     }
 
     #[must_use]

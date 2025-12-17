@@ -52,7 +52,7 @@ where
     H: TransactionHandler<S>,
     S: AccountsStorage,
 {
-    /// Create a new rimmer instance
+    /// Create a new runner instance
     #[must_use]
     pub fn new(handler: H, accounts_storage: S) -> Self {
         Runner {

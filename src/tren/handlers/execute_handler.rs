@@ -67,11 +67,15 @@ impl ExecuteHandler {
     }
 
     fn handle_deposit(account: &mut Account, transaction: &Transaction) -> RunnerOutcome {
+        // This is a bit of an oversimplification: transaction are validated and this invariant is upheld
+        // However we may want a Result here
         account.deposit(transaction.amount.expect("Invalid transaction found"));
         RunnerOutcome::Success
     }
 
     fn handle_withdrawal(account: &mut Account, transaction: &Transaction) -> RunnerOutcome {
+        // This is a bit of an oversimplification: transaction are validated and this invariant is upheld
+        // However we may want a Result here
         let amount_to_withdraw = transaction.amount.expect("Invalid transaction found");
 
         match account.withdraw(amount_to_withdraw) {
@@ -103,7 +107,7 @@ impl ExecuteHandler {
                     status: TransactionStatus::Executed,
                     ..
                 } => {
-                    // transaction has already been validated at this point, so unwrap is ugly but safe
+                    // transaction has already been validated at this point, so expect is ugly but safe
                     account.hold(original_transaction.amount.expect("This Dispute->Deposit/Withdrawal transaction should have an amount and should have been already validated"));
                     original_transaction.dispute();
                     RunnerOutcome::Success

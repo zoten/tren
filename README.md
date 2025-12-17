@@ -60,6 +60,7 @@ gh act
  * It is assumed a precision of 4 digits after decimals, but the input is permissive. However, the output will be rounded to the 4th digit
  * It is assumed that a transaction that has been skipped (e.g. a withdrawal with insufficient funds) cannot be disputed
  * It is assumed that only deposits and withdrawals can be disputed (and subsequently resolved or charged back)
+   * we are allowing withdrawals to be disputed. This may not make sense in a real case scenario, but we keep open to edge cases I didn't think of
  * transactions that do not make sense are just skipped, including but not limited to
    * dispute transactions targeting a non existent transaction
    * dispute transactions from a client targeting a different client
