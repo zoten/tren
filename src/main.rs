@@ -13,8 +13,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let filename = matches
         .get_one::<String>("file_path")
-        .ok_or_else(|| anyhow::anyhow!("Missing file_path argument"))
-        .unwrap();
+        .ok_or_else(|| anyhow::anyhow!("Missing file_path argument"))?;
 
     let handler = ExecuteHandler {};
     let storage = InMemoryAccountsStorage::default();
