@@ -65,3 +65,7 @@ gh act
    * dispute transactions targeting a non existent transaction
    * dispute transactions from a client targeting a different client
    * dispute transactions targeting another dispute transaction
+
+## Edge Cases
+
+ * at the moment the system allows edge cases where amount can become negative, e.g. disputing a deposit that has already been spent. We have no specific business rule for this, so we'll allow it, supposing this dispute would become a chargeback

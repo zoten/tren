@@ -14,6 +14,11 @@ impl<S: AccountsStorage> TransactionHandler<S> for ExecuteHandler {
         transaction: Transaction,
         context: &mut RunnerContext<'_, S>,
     ) -> Result<RunnerOutcome, RunnerError> {
+        // Functional style clone to avoid holding &mut borrow on store while we need to call
+        // other store methods (push_transaction, find_non_disputing_transaction_mut)
+        // Account is small, so clone overhead is negligible.
+        // We could otherwise wrap it in rwlock / refcell - depending on multithreading
+        // but clean code is more important than efficient code atm
         let mut account = context
             .accounts_store
             .get_or_create(transaction.client_id)
