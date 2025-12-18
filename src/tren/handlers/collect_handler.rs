@@ -23,7 +23,7 @@ impl<S: AccountsStorage> TransactionHandler<S> for CollectHandler {
         transaction: Transaction,
         _context: &mut RunnerContext<'_, S>,
     ) -> Result<RunnerOutcome, RunnerError> {
-        self.transactions.push(transaction.clone());
+        self.transactions.push(transaction);
         Ok(RunnerOutcome::Success)
     }
 }

@@ -11,7 +11,7 @@ pub struct ExecuteHandler {}
 impl<S: AccountsStorage> TransactionHandler<S> for ExecuteHandler {
     fn handle(
         &mut self,
-        transaction: Transaction,
+        mut transaction: Transaction,
         context: &mut RunnerContext<'_, S>,
     ) -> Result<RunnerOutcome, RunnerError> {
         // Functional style clone to avoid holding &mut borrow on store while we need to call
@@ -43,15 +43,13 @@ impl<S: AccountsStorage> TransactionHandler<S> for ExecuteHandler {
             }
         };
 
-        // let's forgive this small clone for now
-        let mut new_transaction = transaction.clone();
-        // maybe update a skipped transactopm
-        Self::update_transaction(&mut new_transaction, &result);
+        // maybe update a skipped transaction
+        Self::update_transaction(&mut transaction, &result);
 
         // Add transaction to account's log
         context
             .accounts_store
-            .push_transaction(account.client_id, new_transaction);
+            .push_transaction(account.client_id, transaction);
         // println!("{:?}", account);
         // Update Account in storage
         context
