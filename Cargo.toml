@@ -25,3 +25,14 @@ tokio = { version = "1.43.0", features = [
 ] }
 tokio-util = { version = "0.7.13", features = ["compat"] }
 # tokio-stream = { version = "0.1.17", features = ["tokio-util"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+   
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# nursery = { level = "warn", priority = -1 }
+# Would probably deny both in production
+# unwrap_used = "deny"
+# expect_used = "warn"
+# panic = "deny"
